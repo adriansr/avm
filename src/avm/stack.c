@@ -1,6 +1,6 @@
-
 #include "avm/internals.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -130,4 +130,52 @@ void _avm_stack_set(AVMStack s, uint32_t n, AVMObject o)
     }
 }
 
+void avm_stack_print(AVMStack s)
+{
+    uint32_t i,
+             tmp,
+             siz = avm_stack_size(s);
+
+    printf("Stack [%p] #elems %u\n", s, siz);
+    
+    for (i=0;i<siz;++i)
+    {
+        AVMObject o = avm_stack_at(s,i);
+
+        printf(" at %u [%p] ", i, o);
+
+        switch( (AVMType)o->type )
+        {
+            case AVMTypeObject:
+                printf("*** object ***");
+                break;
+
+            case AVMTypeInteger:
+                tmp = avm_integer_get((AVMInteger)o);
+                printf("int  %d [0x%x]", (int)tmp, tmp);
+                break;
+
+            case AVMTypeString:
+                tmp = avm_string_length((AVMString)o);
+                printf("str  (%u) \"", tmp);
+                fwrite(avm_string_data((AVMString)o), tmp, 1, stdout);
+                printf("\"");
+                break;
+
+            case AVMTypeCode:
+                tmp = avm_string_length((AVMString)o);
+                printf("code {%u bytes}", tmp);
+                break;
+
+            case AVMTypeRef:
+                printf("ref  @<%08x>",avm_ref_get((AVMRef)o));
+                break;
+
+            default:
+                printf("*** unknown %u ***", o->type);
+        }
+
+        printf("\n");
+    }
+}
 

@@ -27,7 +27,9 @@ char code[] =
     0x10,0x83, // pushint 3
     0x10,0x87, // pushint 7
     0x1e, // swap
-    0x1d // pop
+    0x1d, // pop
+    0x14, 0x00, 0x00, 0x00, 0xae,
+    0x12,0x82,0x10,0x81,           // pushcode { pushint 1 }
 };
 
 int main()
@@ -49,47 +51,8 @@ int main()
     
     printf("Execution took %llu clocks\n", (unsigned long long) took);
 
-    uint32_t siz = avm_stack_size(s);
-
-    printf("stack size is %u\n", siz);
     
-    AVMObject o;
-
-    while( siz-- > 0 && (o=avm_stack_pop(s))!=NULL )
-    {
-        AVMType t = avm_object_type(o);
-
-        printf("elem is %u[%p]\n", t,o);
-        
-        switch(t)
-        {
-        case AVMTypeRef:
-        {
-            uint32_t v = avm_ref_get((AVMRef)o);
-            printf("value is %x\n", v);
-            break;
-        }case AVMTypeInteger:
-        {
-            uint32_t v = avm_integer_get((AVMInteger)o);
-            printf("value is %x\n", v);
-            break;
-        }
-        case AVMTypeString:
-        {
-            uint32_t    len = avm_string_length((AVMString)o);
-            const char *p   = avm_string_data  ((AVMString)o);
-
-            printf("value is (%u) \"",len);
-            if (len && p)
-            {
-                fwrite(p,len,1,stdout);
-            }
-            printf("\"\n");
-            break;
-        }
-        }
-
-    }
+    avm_stack_print(s);
 
     return 0;
 }

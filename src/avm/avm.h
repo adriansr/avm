@@ -109,6 +109,8 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMError  avm_stack_discard(AVMStack s, uint32_t n);
     uint32_t  avm_stack_size(AVMStack s);
 
+    void avm_stack_print(AVMStack s);
+
     /*
      * DICT
      */
