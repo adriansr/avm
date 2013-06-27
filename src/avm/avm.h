@@ -30,9 +30,10 @@
 /* stack argument errors 03xx */
 #define AVM_ERROR_NOT_ENOUGH_ARGS 0x0300
 #define AVM_ERROR_WRONG_TYPE      0x0301
-
+#define AVM_ERROR_REF_EXPECTED    0x0302
 typedef struct _AVM*      AVM;
 typedef struct _AVMStack* AVMStack;
+typedef struct _AVMDict*  AVMDict;
 
 typedef uint32_t AVMHash;
 typedef int      AVMError;
@@ -107,6 +108,13 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMObject avm_stack_pop(AVMStack s);
     AVMError  avm_stack_discard(AVMStack s, uint32_t n);
     uint32_t  avm_stack_size(AVMStack s);
+
+    /*
+     * DICT
+     */
+    AVMDict  avm_dict_init(uint8_t size_exp);
+    AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value);
+
     /*
      * EXECUTION
      */

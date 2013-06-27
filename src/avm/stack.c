@@ -122,3 +122,12 @@ uint32_t avm_stack_size(AVMStack s)
     return s->used;
 }
 
+void _avm_stack_set(AVMStack s, uint32_t n, AVMObject o)
+{
+    if (n < s->used)
+    {
+        s->ptr[s->used - 1 - n] = o;
+    }
+}
+
+

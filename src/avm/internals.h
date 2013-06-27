@@ -28,6 +28,7 @@
             size_t      pos,
                         size;
             AVMStack    stack;
+            AVMDict     vars;
         } runtime;
     };
     
@@ -40,8 +41,6 @@
 /*
  * OBJECTS
  */
-#   define AVM_TYPE_INTEGER 0x01
-#   define AVM_TYPE_STRING  0x02
 
     struct _AVMObject
     {
@@ -75,12 +74,35 @@
 #define AVM_STACK_INITIAL_RESERVE 16
 #define AVM_STACK_DUP_LIMIT       65536
 
-
     struct _AVMStack
     {
         uint32_t  used,
                   reserved;
         AVMObject *ptr;
+    };
+    
+    void _avm_stack_set(AVMStack s, uint32_t n, AVMObject o);
+
+/*
+ * DICT
+ */
+#define AVM_DICT_MIN_SIZE_EXP     4
+#define AVM_DICT_DEFAULT_SIZE_EXP 10
+#define AVM_DICT_MAX_SIZE_EXP     16
+    
+    struct _AVMDictEntry
+    {
+        AVMHash   key;
+        AVMObject value;
+        struct _AVMDictEntry *next;
+    };
+
+    struct _AVMDict
+    {
+        uint32_t     size,
+                     mask,
+                     count;
+        struct _AVMDictEntry* dict[];
     };
 
 #endif /* AVM_INTERNALS_INCLUDED */

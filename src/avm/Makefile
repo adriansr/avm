@@ -1,5 +1,6 @@
 OBJECTS=avm.o \
         hash.o \
+        dict.o \
         objects.o \
         stack.o \
         run.o

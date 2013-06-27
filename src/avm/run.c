@@ -176,9 +176,11 @@ static AVMError _parse_Add(AVM vm)
         return AVM_ERROR_WRONG_TYPE;
 
     ((AVMInteger)a)->value += ((AVMInteger)b)->value;
+    
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
 
-    avm_stack_discard(s,2);
-    return avm_stack_push(s, a);
+    return avm_stack_discard(s,1);
 }
 
 static AVMError _parse_Sub(AVM vm)
@@ -198,8 +200,10 @@ static AVMError _parse_Sub(AVM vm)
 
     ((AVMInteger)a)->value -= ((AVMInteger)b)->value;
 
-    avm_stack_discard(s,2);
-    return avm_stack_push(s, a);
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
 }
 
 static AVMError _parse_Div(AVM vm)
@@ -219,9 +223,10 @@ static AVMError _parse_Div(AVM vm)
 
     ((AVMInteger)a)->value /= ((AVMInteger)b)->value;
 
-    avm_stack_discard(s,2);
-    return avm_stack_push(s, a);
-}
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);}
 
 static AVMError _parse_Mul(AVM vm)
 {
@@ -240,8 +245,10 @@ static AVMError _parse_Mul(AVM vm)
 
     ((AVMInteger)a)->value *= ((AVMInteger)b)->value;
 
-    avm_stack_discard(s,2);
-    return avm_stack_push(s, a);
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
 }
 
 static AVMError _parse_Dup(AVM vm)
@@ -259,6 +266,81 @@ static AVMError _parse_Dup(AVM vm)
     return avm_stack_push(s, oo);
 }
 
+static AVMError _parse_Pop(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+    
+    AVMObject o = avm_stack_pop(s);
+    if (o) avm_object_free(o);
+
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Def(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject value = avm_stack_at(s,0),
+              key   = avm_stack_at(s,1);
+    
+    
+    if (key->type != AVMTypeRef)
+    {
+        // TODO
+        // assert( key->type != AVMTypeString);
+        return AVM_ERROR_REF_EXPECTED;
+    }
+
+    AVMDict dict = vm->runtime.vars;
+    if (dict == NULL)
+    {
+        dict = avm_dict_init(0);
+        if (!dict)
+        {
+            return AVM_ERROR_NO_MEM;
+        }
+
+        vm->runtime.vars = dict;
+    }
+    
+    AVMError err = avm_dict_set(dict, ((AVMRef)key)->ref, value);
+    
+    if (err != AVM_NO_ERROR)
+    {
+        return err;
+    }
+
+    return avm_stack_discard(s, 2);
+}
+
+static AVMError _parse_Swap(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0),
+              b = avm_stack_at(s,1);
+    
+    _avm_stack_set(s,0,b);
+    _avm_stack_set(s,1,a);
+
+    return AVM_NO_ERROR; 
+}
+
 AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 {
     AVMError err;
@@ -270,6 +352,7 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
     vm->runtime.pos   = 0;
     vm->runtime.size  = size;
     vm->runtime.stack = s;
+
     while(vm->runtime.pos < vm->runtime.size)
     {
         AVMOpcode op = vm->runtime.code[vm->runtime.pos ++];
@@ -285,17 +368,20 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
                     goto failure; \
                 break;
             
-            OPCODE(Dup)
             OPCODE(PushInt)
             OPCODE(PushString)
             OPCODE(PushCode)
             OPCODE(PushNegInt)
             OPCODE(PushRef)
+            OPCODE(Pop)
+            OPCODE(Swap)
+            OPCODE(Dup)
             //OPCODE(PushRefVal)
             OPCODE(Add)
             OPCODE(Sub)
             OPCODE(Div)
             OPCODE(Mul)
+            OPCODE(Def)
 
             default:
                 return AVM_ERROR_INVALID_OPCODE;
