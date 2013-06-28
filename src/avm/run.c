@@ -104,6 +104,57 @@ static AVMError _parse_PushRef(AVM vm)
     return avm_stack_push(vm->runtime.stack, (AVMObject)o);
 }
 
+static AVMError _run_subroutine(AVM vm, AVMCode code)
+{
+    const char *saved_code = vm->runtime.code;
+    size_t      saved_pos  = vm->runtime.pos,
+                saved_size = vm->runtime.size;
+
+    AVMError err = avm_run(vm, code->data, code->length, vm->runtime.stack);
+
+    vm->runtime.code = saved_code;
+    vm->runtime.pos  = saved_pos;
+    vm->runtime.size = saved_size;
+
+    return err;
+}
+
+static AVMError _parse_PushRefVal(AVM vm)
+{
+    AVMHash hash;
+    
+    if (vm->runtime.pos + 4 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    hash = (p[0]<<24)
+         | (p[1]<<16)
+         | (p[2]<<8)
+         | (p[3]);
+    
+    vm->runtime.pos += 4;
+    
+    AVMDict dict = vm->runtime.vars;
+    AVMObject o;
+
+    if (!dict || !(o=avm_dict_get(dict, hash)) )
+    {
+        return AVM_ERROR_REF_NOT_BIND;
+    }
+    
+    if (o->type != AVMTypeCode)
+    {
+        return avm_stack_push(vm->runtime.stack, o);
+    }
+    else
+    {
+        return _run_subroutine(vm, (AVMCode)o);
+    }
+}
+
 static AVMError _parse_PushString(AVM vm)
 {
     uint32_t length;
@@ -373,14 +424,16 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
             OPCODE(PushCode)
             OPCODE(PushNegInt)
             OPCODE(PushRef)
+            OPCODE(PushRefVal)
+
             OPCODE(Pop)
             OPCODE(Swap)
             OPCODE(Dup)
-            //OPCODE(PushRefVal)
             OPCODE(Add)
             OPCODE(Sub)
             OPCODE(Div)
             OPCODE(Mul)
+
             OPCODE(Def)
 
             default:

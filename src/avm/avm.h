@@ -23,6 +23,7 @@
 #define AVM_ERROR_STR_TRUNCATED  0x0104
 #define AVM_ERROR_CODE_TRUNCATED 0x0105
 #define AVM_ERROR_REF_TRUNCATED  0x0106
+#define AVM_ERROR_REF_NOT_BIND   0x0107
 
 /* inconsistency errors 0x02xx */
 #define AVM_ERROR_INVALID_DISCARD 0x0200
@@ -114,8 +115,9 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     /*
      * DICT
      */
-    AVMDict  avm_dict_init(uint8_t size_exp);
-    AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value);
+    AVMDict   avm_dict_init(uint8_t size_exp);
+    AVMError  avm_dict_set (AVMDict dict, AVMHash key, AVMObject value);
+    AVMObject avm_dict_get (AVMDict dict, AVMHash key);
 
     /*
      * EXECUTION

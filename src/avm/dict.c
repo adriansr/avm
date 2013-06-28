@@ -89,5 +89,25 @@ AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value)
             return _store_key(key, value, prev, NULL);
         }
     }
-
 }
+
+AVMObject avm_dict_get(AVMDict dict, AVMHash key)
+{
+    if (!dict) return NULL;
+
+    uint32_t pos = key & dict->mask;
+    struct _AVMDictEntry *ent = dict->dict[pos];
+
+    while (ent != NULL && ent->key < key)
+    {
+        ent = ent->next;
+    }
+
+    if (ent && ent->key == key)
+    {
+        return ent->value;
+    }
+
+    return NULL;
+}
+
