@@ -77,7 +77,7 @@ static AVMError _read_uint24(AVM vm, uint32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    *value = p[0] | (p[1]<<8) | (p[2]<<16);
+    *value = p[2] | (p[1]<<8) | (p[0]<<16);
     
     vm->runtime.pos += 3;
     return AVM_NO_ERROR;
@@ -92,7 +92,7 @@ static AVMError _read_uint32(AVM vm, uint32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    *value = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    *value = p[3] | (p[2]<<8) | (p[1]<<16) | (p[0]<<24);
     
     vm->runtime.pos += 4;
     return AVM_NO_ERROR;
@@ -125,7 +125,7 @@ static AVMError _read_int16(AVM vm, int32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    vvalue = (p[1]<<8) | p[0];
+    vvalue = (p[0]<<8) | p[1];
     
     vm->runtime.pos += 2;
     
@@ -144,7 +144,7 @@ static AVMError _read_int24(AVM vm, int32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    vvalue = p[0] | (p[1]<<8) | (p[2]<<16);
+    vvalue = p[2] | (p[1]<<8) | (p[0]<<16);
     
     vm->runtime.pos += 3;
     
@@ -167,7 +167,7 @@ static AVMError _read_int32(AVM vm, int32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    *value = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    *value = p[3] | (p[2]<<8) | (p[1]<<16) | (p[0]<<24);
     
     vm->runtime.pos += 4;
     return AVM_NO_ERROR;

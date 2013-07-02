@@ -11,6 +11,8 @@
 
 int compile_number(Buffer *output, Buffer *token)
 {
+    unsigned char buf[5];
+
     long long rval;
     char     *endp;
 
@@ -28,7 +30,80 @@ int compile_number(Buffer *output, Buffer *token)
                 buffer_get_data(token));
     }
 
+    if     (rval >= 0 && rval <= 7)
+    {
+        buf[0] = AVMOpcode0 + rval;
+        buffer_append(output, (const char*)buf, 1);
+    }
+    else if(rval >= -7 && rval <= -1)
+    {
+        buf[0] = AVMOpcodeN1 - rval - 1;
+        buffer_append(output,(const char*) buf, 1);
+    }
+    else if(rval >= -128 && rval <= 127)
+    {
+        buf[0] = AVMOpcodeInt8;
+        buf[1] = rval & 0xff;
+        buffer_append(output, (const char*)buf, 2);
+    }
+    else if(rval >= INT16_MIN && rval <= INT16_MAX)
+    {
+        buf[0] = AVMOpcodeInt16;
+        buf[1] = (rval>>8) & 0xff;
+        buf[2] = rval & 0xff;
+        buffer_append(output, (const char*)buf, 3);
+    }
+    else if(rval >= -(1<<23)  && rval <= (1<<23)-1)
+    {
+        buf[0] = AVMOpcodeInt24;
+        buf[1] = 0xff & (rval>>16);
+        buf[2] = 0xff & (rval>>8);
+        buf[3] = 0xff & rval;
+        buffer_append(output, (const char*)buf, 4);
+    }
+    else if(rval >= INT32_MIN && rval <= INT32_MAX)
+    {
+        buf[0] = AVMOpcodeInt32;
+        buf[1] = 0xff & (rval>>24);
+        buf[2] = 0xff & (rval>>16);
+        buf[3] = 0xff & (rval>>8);
+        buf[4] = 0xff & rval;
+        buffer_append(output, (const char*)buf, 5);
+    }
+    
+    return 0;
+}
 
+
+int compile_string(Buffer *output, Buffer *token)
+{
+    unsigned char buf[3];
+
+    size_t len = buffer_get_size(token);
+
+    if (len > UINT16_MAX)
+    {
+        fprintf(stderr, "String is too long!");
+        return 1;
+    }
+
+    if     (len < UINT8_MAX)
+    {
+        buf[0] = AVMOpcodeStr8;
+        buf[1] = len;
+        buffer_append(output, (const char*)buf, 2);
+        buffer_append(output, buffer_get_data(token), buffer_get_size(token));
+    }
+    else
+    {
+        buf[0] = AVMOpcodeStr16;
+        buf[1] = 0xff & (len>>8);
+        buf[2] = 0xff & len;
+        buffer_append(output, (const char*)buf, 3);
+        buffer_append(output, buffer_get_data(token), buffer_get_size(token));
+    }
+    
+    return 0;
 }
 
 int compile_nested(Buffer *output, FILE *input, int nestlvl)
@@ -51,6 +126,9 @@ int compile_nested(Buffer *output, FILE *input, int nestlvl)
                 break;
                 
             case TokenString:
+                rv = compile_string(output,token);
+                break;
+
             case TokenChar:
             case TokenRef:
             case TokenDeref:
@@ -100,7 +178,7 @@ int compile(Args *args)
 
         if (nbytes)
         {
-            if (nbytes != fwrite(buffer_get_data(buf), nbytes, 1, fout))
+            if (nbytes != fwrite(buffer_get_data(buf), 1, nbytes, fout))
             {
                 fprintf(stderr,"Error writting %lu bytes to output file\n",
                         nbytes);

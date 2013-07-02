@@ -56,8 +56,6 @@ typedef enum
     AVMOpcodeN6     = 0x6d,
     AVMOpcodeN7     = 0x6e,
 
-
-
 } AVMOpcode;
 
 #endif // OPCODES_H_INCLUDED
