@@ -32,6 +32,8 @@
 #define AVM_ERROR_NOT_ENOUGH_ARGS 0x0300
 #define AVM_ERROR_WRONG_TYPE      0x0301
 #define AVM_ERROR_REF_EXPECTED    0x0302
+#define AVM_ERROR_DIFFERENT_TYPES 0x0303 // comparing different types
+#define AVM_ERROR_TYPE_NOT_EXEC   0x0304
 typedef struct _AVM*      AVM;
 typedef struct _AVMStack* AVMStack;
 typedef struct _AVMDict*  AVMDict;
@@ -74,7 +76,8 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
 
     /* misc */
     uint16_t avm_version(AVM vm);
-    
+    uint32_t avm_stats_icount(AVM vm);
+
     /* errors */
     uint16_t avm_error(AVM vm);
     size_t   avm_error_position(AVM vm);
@@ -83,7 +86,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
      * OBJECTS
      */
 
-    AVMInteger  avm_create_integer(uint32_t value);
+    AVMInteger  avm_create_integer(int32_t value);
     AVMString   avm_create_cstring(const char *s);
     AVMString   avm_create_string (const char *data, uint32_t size);
     AVMCode     avm_create_code   (const char *ptr,  uint32_t size);
@@ -92,7 +95,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     void        avm_object_free   (AVMObject o);
     AVMObject   avm_object_copy   (AVMObject o);
     AVMType     avm_object_type   (AVMObject o);
-    uint32_t    avm_integer_get   (AVMInteger o);
+    int32_t     avm_integer_get   (AVMInteger o);
     uint32_t    avm_ref_get       (AVMRef o);
     uint32_t    avm_string_length (AVMString o);
     const char* avm_string_data   (AVMString o);

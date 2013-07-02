@@ -46,7 +46,7 @@ static AVMError _parse_PushInt(AVM vm)
         return err;
     }
 
-    AVMInteger o = avm_create_integer(value);
+    AVMInteger o = avm_create_integer((int32_t)value);
 
     if (o == NULL)
     {
@@ -66,7 +66,7 @@ static AVMError _parse_PushNegInt(AVM vm)
         return err;
     }
 
-    AVMInteger o = avm_create_integer(-value);
+    AVMInteger o = avm_create_integer(-(int32_t)value);
 
     if (o == NULL)
     {
@@ -392,6 +392,178 @@ static AVMError _parse_Swap(AVM vm)
     return AVM_NO_ERROR; 
 }
 
+static AVMError _compare(AVM vm,int* result)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+    
+    if (a->type != b->type)
+    {
+        return AVM_ERROR_DIFFERENT_TYPES;
+    }
+
+    switch((AVMType)a->type)
+    {
+        case AVMTypeInteger:
+        {
+            *result = ((AVMInteger)a)->value - ((AVMInteger)b)->value;
+        }
+        break;
+        
+        case AVMTypeString:
+            *result = ((AVMString)a)->length - ((AVMString)b)->length;
+            if (*result == 0)
+                *result = memcmp(((AVMString)a)->data,
+                                 ((AVMString)b)->data,
+                                 ((AVMString)a)->length);
+            break;
+
+        default:
+            return AVM_ERROR_WRONG_TYPE;
+
+    }
+
+    avm_stack_discard(s, 2);
+
+    avm_object_free(b);
+    avm_object_free(a);
+
+    return AVM_NO_ERROR; 
+}
+
+#define MK_COMPARISION_FN(NAME,OP) \
+static AVMError _parse_ ## NAME (AVM vm) \
+{ \
+    int c; \
+    AVMError err = _compare(vm,&c); \
+    \
+    if (err != AVM_NO_ERROR) \
+    { \
+        return err; \
+    } \
+    \
+    AVMInteger i = avm_create_integer(c OP 0); \
+    if (!i) \
+    { \
+        return AVM_ERROR_NO_MEM; \
+    } \
+    \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)i); \
+}
+
+MK_COMPARISION_FN(Eq,==)
+MK_COMPARISION_FN(Neq,!=)
+MK_COMPARISION_FN(Lt,<)
+MK_COMPARISION_FN(Lte,<=)
+MK_COMPARISION_FN(Gt,>)
+MK_COMPARISION_FN(Gte,>=)
+
+static AVMError _parse_If(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject action    = avm_stack_at(s,0),
+              condition = avm_stack_at(s,1);
+    
+    char b;
+    
+    if (action->type != AVMTypeCode)
+        return AVM_ERROR_TYPE_NOT_EXEC;
+
+    switch ((AVMType)condition->type)
+    {
+        case AVMTypeInteger:
+            b = ((AVMInteger)condition)->value != 0;
+            break;
+
+        case AVMTypeString:
+            b = ((AVMString)condition)->length != 0;
+            break;
+        default:
+            return AVM_ERROR_WRONG_TYPE;
+    }
+    
+    avm_object_free(condition);
+    condition = NULL;
+
+    avm_stack_discard(vm->runtime.stack, 2);
+
+    if (b)
+    {
+        AVMError err = _run_subroutine(vm, (AVMCode)action);
+
+        if (err != AVM_NO_ERROR)
+            return err;
+
+        avm_object_free(action);
+    }
+
+    return AVM_NO_ERROR;
+}
+
+
+static AVMError _parse_IfElse(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 3)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject actionB   = avm_stack_at(s,0),
+              action    = avm_stack_at(s,1),
+              condition = avm_stack_at(s,2);
+    
+    char b;
+    
+    if (action->type != actionB->type 
+     || action->type != AVMTypeCode)
+        return AVM_ERROR_TYPE_NOT_EXEC;
+
+    switch ((AVMType)condition->type)
+    {
+        case AVMTypeInteger:
+            b = ((AVMInteger)condition)->value != 0;
+            break;
+
+        case AVMTypeString:
+            b = ((AVMString)condition)->length != 0;
+            break;
+        default:
+            return AVM_ERROR_WRONG_TYPE;
+    }
+    
+    avm_object_free(condition);
+    condition = NULL;
+
+    avm_stack_discard(vm->runtime.stack, 3);
+
+    AVMError err = _run_subroutine(vm, (AVMCode) (b?action:actionB)) ;
+
+    if (err != AVM_NO_ERROR)
+        return err;
+
+    avm_object_free(action);
+    avm_object_free(actionB);
+
+    return AVM_NO_ERROR;
+}
+
+
+
 AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 {
     AVMError err;
@@ -436,10 +608,22 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 
             OPCODE(Def)
 
+            OPCODE(Eq)
+            OPCODE(Neq)
+            OPCODE(Lt)
+            OPCODE(Lte)
+            OPCODE(Gt)
+            OPCODE(Gte)
+
+            OPCODE(If)
+            OPCODE(IfElse)
+
             default:
                 return AVM_ERROR_INVALID_OPCODE;
 
         }
+
+        vm->icount ++;
     }
 
     return AVM_NO_ERROR;

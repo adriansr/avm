@@ -76,3 +76,8 @@ void   _avm_set_error(AVM vm, uint16_t code, size_t pos)
     vm->error_pos  = pos;
 }
 
+uint32_t avm_stats_icount(AVM vm)
+{
+    return vm->icount;
+}
+

@@ -22,7 +22,7 @@ static AVMString _create_buffer_type(AVMType t, const char *data, uint32_t size)
     return o;
 }
 
-AVMInteger  avm_create_integer(uint32_t value)
+AVMInteger  avm_create_integer(int32_t value)
 {
     AVMInteger o = ALLOC_OPAQUE_STRUCT(AVMInteger);
 
@@ -81,7 +81,7 @@ AVMType avm_object_type(AVMObject o)
     return o->type;
 }
 
-uint32_t avm_integer_get(AVMInteger o)
+int32_t avm_integer_get(AVMInteger o)
 {
     return o->value;
 }

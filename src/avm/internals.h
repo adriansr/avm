@@ -30,6 +30,9 @@
             AVMStack    stack;
             AVMDict     vars;
         } runtime;
+
+        /* stats */
+        uint32_t icount; /* instruction count */
     };
     
 #   define AVM_DEFAULT_HASH_SEED 0x873d1ae5
@@ -50,7 +53,7 @@
     struct _AVMInteger
     {
         uint8_t  type;
-        uint32_t value;
+        int32_t  value;
     };
 
     struct _AVMString
