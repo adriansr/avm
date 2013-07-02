@@ -4,79 +4,194 @@
 #include <stdlib.h>
 #include <string.h>
 
-static AVMError _avm_read_vlint(AVM vm, uint32_t *pVal)
-{
-    uint32_t val = 0;
-    const char *code = vm->runtime.code;
-
-    size_t i     = 0,
-           limit = vm->runtime.size - vm->runtime.pos; 
-
-    code += vm->runtime.pos;
-
-    if (limit>5) limit = 5;
-
-    while (i<limit)
-    {
-        uint8_t v = (uint8_t)code[i++];
-
-        val = (val<<7) | (v&0x7f);
-
-        if (v & 0x80)
-        {
-            *pVal            = val;
-            vm->runtime.pos += i;
-            return AVM_NO_ERROR;
-        }
-    }
-
-    *pVal  = 0;
-    /* *pPos += i; */
-
-    return AVM_ERROR_BAD_VLINT;
+#define MK_NUMBER_FN(N) \
+static AVMError _parse_ ## N(AVM vm) \
+{ \
+    AVMInteger o = avm_create_integer(N); \
+    if (o == NULL) return AVM_ERROR_NO_MEM; \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
 }
 
-static AVMError _parse_PushInt(AVM vm)
+MK_NUMBER_FN(0)
+MK_NUMBER_FN(1)
+MK_NUMBER_FN(2)
+MK_NUMBER_FN(3)
+MK_NUMBER_FN(4)
+MK_NUMBER_FN(5)
+MK_NUMBER_FN(6)
+MK_NUMBER_FN(7)
+
+#define MK_NEG_NUMBER_FN(N) \
+static AVMError _parse_N ## N(AVM vm) \
+{ \
+    AVMInteger o = avm_create_integer(-N); \
+    if (o == NULL) return AVM_ERROR_NO_MEM; \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
+}
+
+MK_NEG_NUMBER_FN(1)
+MK_NEG_NUMBER_FN(2)
+MK_NEG_NUMBER_FN(3)
+MK_NEG_NUMBER_FN(4)
+MK_NEG_NUMBER_FN(5)
+MK_NEG_NUMBER_FN(6)
+MK_NEG_NUMBER_FN(7)
+
+static AVMError _read_uint8(AVM vm, uint32_t *value)
 {
-    uint32_t value;
-    AVMError err = _avm_read_vlint(vm,&value);
-
-    if (err != AVM_NO_ERROR)
+    if (vm->runtime.pos + 1 > vm->runtime.size)
     {
-        return err;
-    }
-
-    AVMInteger o = avm_create_integer((int32_t)value);
-
-    if (o == NULL)
-    {
-        return AVM_ERROR_NO_MEM;
+        return AVM_ERROR_REF_TRUNCATED;
     }
     
-    return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = p[0];
+    
+    vm->runtime.pos += 1;
+
+    return AVM_NO_ERROR;
 }
 
-static AVMError _parse_PushNegInt(AVM vm)
+static AVMError _read_uint16(AVM vm, uint32_t *value)
 {
-    uint32_t value;
-    AVMError err = _avm_read_vlint(vm,&value);
-
-    if (err != AVM_NO_ERROR)
+    if (vm->runtime.pos + 2 > vm->runtime.size)
     {
-        return err;
-    }
-
-    AVMInteger o = avm_create_integer(-(int32_t)value);
-
-    if (o == NULL)
-    {
-        return AVM_ERROR_NO_MEM;
+        return AVM_ERROR_REF_TRUNCATED;
     }
     
-    return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = (p[1]<<8) | p[0];
+    
+    vm->runtime.pos += 2;
+    return AVM_NO_ERROR;
 }
 
-static AVMError _parse_PushRef(AVM vm)
+static AVMError _read_uint24(AVM vm, uint32_t *value)
+{
+    if (vm->runtime.pos + 3 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = p[0] | (p[1]<<8) | (p[2]<<16);
+    
+    vm->runtime.pos += 3;
+    return AVM_NO_ERROR;
+}
+
+static AVMError _read_uint32(AVM vm, uint32_t *value)
+{
+    if (vm->runtime.pos + 4 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    
+    vm->runtime.pos += 4;
+    return AVM_NO_ERROR;
+}
+
+static AVMError _read_int8(AVM vm, int32_t *value)
+{
+    if (vm->runtime.pos + 1 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    int8_t *p = (int8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = p[0];
+    
+    vm->runtime.pos += 1;
+
+    return AVM_NO_ERROR;
+}
+
+static AVMError _read_int16(AVM vm, int32_t *value)
+{
+    int16_t vvalue;
+
+    if (vm->runtime.pos + 2 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    vvalue = (p[1]<<8) | p[0];
+    
+    vm->runtime.pos += 2;
+    
+    *value = vvalue;
+    return AVM_NO_ERROR;
+}
+
+static AVMError _read_int24(AVM vm, int32_t *value)
+{
+    uint32_t vvalue;
+    
+    if (vm->runtime.pos + 3 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    vvalue = p[0] | (p[1]<<8) | (p[2]<<16);
+    
+    vm->runtime.pos += 3;
+    
+    /* sign extend to 32 bits */
+    if (vvalue & 0x800000)
+    {
+        vvalue |= 0xff000000;
+    }
+    
+    *value = vvalue;
+    return AVM_NO_ERROR;
+}
+
+static AVMError _read_int32(AVM vm, int32_t *value)
+{
+    if (vm->runtime.pos + 4 > vm->runtime.size)
+    {
+        return AVM_ERROR_REF_TRUNCATED;
+    }
+    
+    uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
+
+    *value = p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    
+    vm->runtime.pos += 4;
+    return AVM_NO_ERROR;
+}
+
+#define MK_NUMBER_BITS_FN(BITS) \
+static AVMError _parse_Int ## BITS(AVM vm) \
+{ \
+    int32_t value; \
+    AVMError err = _read_int##BITS(vm, &value); \
+    if (err != AVM_NO_ERROR) \
+        return err; \
+    AVMInteger o = avm_create_integer(value); \
+    if (o == NULL) \
+        return AVM_ERROR_NO_MEM; \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
+}
+
+MK_NUMBER_BITS_FN(8)
+MK_NUMBER_BITS_FN(16)
+MK_NUMBER_BITS_FN(24)
+MK_NUMBER_BITS_FN(32)
+
+static AVMError _parse_Ref(AVM vm)
 {
     uint32_t value;
     
@@ -119,7 +234,7 @@ static AVMError _run_subroutine(AVM vm, AVMCode code)
     return err;
 }
 
-static AVMError _parse_PushRefVal(AVM vm)
+static AVMError _parse_RefVal(AVM vm)
 {
     AVMHash hash;
     
@@ -155,61 +270,47 @@ static AVMError _parse_PushRefVal(AVM vm)
     }
 }
 
-static AVMError _parse_PushString(AVM vm)
-{
-    uint32_t length;
-    AVMError err = _avm_read_vlint(vm,&length);
-
-    if (err != AVM_NO_ERROR)
-    {
-        return err;
-    }
-    
-    if (vm->runtime.pos + length > vm->runtime.size)
-    {
-        return AVM_ERROR_STR_TRUNCATED;
-    }
-
-    AVMString o = avm_create_string(&vm->runtime.code[vm->runtime.pos],
-                                    length);
-
-    if (o == NULL)
-    {
-        return AVM_ERROR_NO_MEM;
-    }
-
-    vm->runtime.pos += length;
-
-    return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+#define MK_STR_BITS_FN(BITS) \
+static AVMError _parse_Str##BITS(AVM vm) \
+{ \
+    uint32_t length; \
+    AVMError err = _read_uint##BITS(vm,&length); \
+    if (err != AVM_NO_ERROR) \
+        return AVM_ERROR_REF_TRUNCATED; \
+    if (vm->runtime.pos + length > vm->runtime.size) \
+        return AVM_ERROR_STR_TRUNCATED; \
+    AVMString o = avm_create_string(&vm->runtime.code[vm->runtime.pos], \
+                                    length); \
+    if (o == NULL) \
+        return AVM_ERROR_NO_MEM; \
+    vm->runtime.pos += length; \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
 }
 
-static AVMError _parse_PushCode(AVM vm)
-{
-    uint32_t length;
-    AVMError err = _avm_read_vlint(vm,&length);
+MK_STR_BITS_FN(8)
+MK_STR_BITS_FN(16)
 
-    if (err != AVM_NO_ERROR)
-    {
-        return err;
-    }
-    
-    if (vm->runtime.pos + length > vm->runtime.size)
-    {
-        return AVM_ERROR_CODE_TRUNCATED;
-    }
-
-    AVMCode o = avm_create_code(&vm->runtime.code[vm->runtime.pos],
-                                length);
-
-    if (o == NULL)
-    {
-        return AVM_ERROR_NO_MEM;
-    }
-
-    vm->runtime.pos += length;
-
-    return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+#define MK_CODE_BITS_FN(BITS) \
+static AVMError _parse_Code##BITS (AVM vm) \
+{ \
+    uint32_t length; \
+    AVMError err = _read_uint##BITS(vm,&length); \
+    if (err != AVM_NO_ERROR) \
+        return err; \
+    if (vm->runtime.pos + length > vm->runtime.size) \
+        return AVM_ERROR_CODE_TRUNCATED; \
+    AVMCode o = avm_create_code(&vm->runtime.code[vm->runtime.pos], \
+                                length); \
+    if (o == NULL) \
+        return AVM_ERROR_NO_MEM; \
+    vm->runtime.pos += length; \
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
 }
+
+MK_CODE_BITS_FN(8)
+MK_CODE_BITS_FN(16)
+MK_CODE_BITS_FN(24)
+MK_CODE_BITS_FN(32)
 
 static AVMError _parse_Add(AVM vm)
 {
@@ -591,12 +692,18 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
                     goto failure; \
                 break;
             
-            OPCODE(PushInt)
-            OPCODE(PushString)
-            OPCODE(PushCode)
-            OPCODE(PushNegInt)
-            OPCODE(PushRef)
-            OPCODE(PushRefVal)
+            OPCODE(Ref)
+            OPCODE(RefVal)
+            OPCODE(Int8)
+            OPCODE(Int16)
+            OPCODE(Int24)
+            OPCODE(Int32)
+            OPCODE(Str8)
+            OPCODE(Str16)
+            OPCODE(Code8)
+            OPCODE(Code16)
+            OPCODE(Code24)
+            OPCODE(Code32)
 
             OPCODE(Pop)
             OPCODE(Swap)
@@ -617,6 +724,23 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 
             OPCODE(If)
             OPCODE(IfElse)
+
+            OPCODE(0)
+            OPCODE(1)
+            OPCODE(2)
+            OPCODE(3)
+            OPCODE(4)
+            OPCODE(5)
+            OPCODE(6)
+            OPCODE(7)
+            
+            OPCODE(N1)
+            OPCODE(N2)
+            OPCODE(N3)
+            OPCODE(N4)
+            OPCODE(N5)
+            OPCODE(N6)
+            OPCODE(N7)
 
             default:
                 return AVM_ERROR_INVALID_OPCODE;

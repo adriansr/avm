@@ -60,3 +60,16 @@ void buffer_append(Buffer *b, const char *data, size_t size)
     b->used += size;
 }
 
+void buffer_zero_terminate(Buffer *b)
+{
+    if (b->used < b->allocated)
+    {
+        b->data[b->used] = 0;
+    }
+    else
+    {
+        char zero = 0;
+        buffer_append(b, &zero, 1);
+        b->used --;
+    }
+}

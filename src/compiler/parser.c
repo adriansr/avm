@@ -110,7 +110,7 @@ static char parse_other(Buffer *token, TokenType *pType, FILE *input, char first
         
         if ( !(cc>='0' && cc<='9') )
         {
-            isNumber = 0;
+            //isNumber = 0;
 
             if (!(cc>='A' && cc<='Z')
              && !(cc>='a' && cc<='z'))

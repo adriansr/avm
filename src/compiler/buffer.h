@@ -16,6 +16,7 @@ typedef struct Buffer Buffer;
 
 Buffer *buffer_init();
 void    buffer_append(Buffer *b, const char *data, size_t size);
+void    buffer_zero_terminate(Buffer *b);
 
 #define buffer_get_data(B) ((B)->data)
 #define buffer_get_size(B) ((B)->used)

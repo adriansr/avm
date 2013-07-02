@@ -1,7 +1,35 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
+
 #include "args.h"
 #include "buffer.h"
 #include "parser.h"
+
+#include <avm/opcodes.h>
+
+int compile_number(Buffer *output, Buffer *token)
+{
+    long long rval;
+    char     *endp;
+
+    rval = strtoll(buffer_get_data(token), &endp, 0);
+
+    if (*endp != '\0')
+    {
+        fprintf(stderr, "Invalid number '%s'\n", buffer_get_data(token));
+        return 9;
+    }
+
+    if (rval < INT32_MIN || rval > INT32_MAX )
+    {
+        fprintf(stderr, "Integer value '%s' doesn't fit a 32 bit integer\n",
+                buffer_get_data(token));
+    }
+
+
+}
 
 int compile_nested(Buffer *output, FILE *input, int nestlvl)
 {
@@ -12,12 +40,29 @@ int compile_nested(Buffer *output, FILE *input, int nestlvl)
        && type != TokenError
        && type != TokenEOF)
     {
-        fprintf(stderr, "token %u '", type);
-        if (type != TokenCodeBegin && type != TokenCodeEnd)
+        int rv;
+        
+        buffer_zero_terminate(token);
+
+        switch (type)
         {
-            fwrite(buffer_get_data(token), buffer_get_size(token), 1, stderr);
+            case TokenNumber:
+                rv = compile_number(output,token);
+                break;
+                
+            case TokenString:
+            case TokenChar:
+            case TokenRef:
+            case TokenDeref:
+            case TokenCodeBegin:
+            case TokenCodeEnd:
+            case TokenOp:
+                break;
+            case TokenError:
+            case TokenEOF:
+                /* impossible, but avoid warning */
+                break;
         }
-        fprintf(stderr, "'\n");
     }
 
     return type != TokenError ? 0 : 9;
