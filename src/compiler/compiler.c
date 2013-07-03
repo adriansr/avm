@@ -8,26 +8,15 @@
 #include "parser.h"
 
 #include <avm/opcodes.h>
-
-int compile_number(Buffer *output, Buffer *token)
+   
+int compile_integer(Buffer *output, long long rval)
 {
     unsigned char buf[5];
 
-    long long rval;
-    char     *endp;
-
-    rval = strtoll(buffer_get_data(token), &endp, 0);
-
-    if (*endp != '\0')
-    {
-        fprintf(stderr, "Invalid number '%s'\n", buffer_get_data(token));
-        return 9;
-    }
-
     if (rval < INT32_MIN || rval > INT32_MAX )
     {
-        fprintf(stderr, "Integer value '%s' doesn't fit a 32 bit integer\n",
-                buffer_get_data(token));
+        fprintf(stderr, "Integer value %lld doesn't fit a 32 bit integer\n",
+                rval);
     }
 
     if     (rval >= 0 && rval <= 7)
@@ -74,6 +63,34 @@ int compile_number(Buffer *output, Buffer *token)
     return 0;
 }
 
+int compile_number(Buffer *output, Buffer *token)
+{
+    long long rval;
+    char     *endp;
+
+    rval = strtoll(buffer_get_data(token), &endp, 0);
+
+    if (*endp != '\0')
+    {
+        fprintf(stderr, "Invalid number '%s'\n", buffer_get_data(token));
+        return 9;
+    }
+
+    return compile_integer(output, rval);
+}
+ 
+int compile_char(Buffer *output, Buffer *token)
+{
+    if (buffer_get_size(token) != 1)
+    {
+        fprintf(stderr, "Chars must have length 1: '%s'\n", 
+                buffer_get_data(token));
+
+        return 1;
+    }
+
+    return compile_integer(output, buffer_get_data(token)[0]);
+}
 
 int compile_string(Buffer *output, Buffer *token)
 {
@@ -106,6 +123,53 @@ int compile_string(Buffer *output, Buffer *token)
     return 0;
 }
 
+static struct {
+    const char *name;
+    AVMOpcode   op;
+}
+OPCODE_TABLE[] = {
+    {"pop",  AVMOpcodePop},
+    {"swap", AVMOpcodeSwap},
+    {"dup",  AVMOpcodeDup},
+    {"add",  AVMOpcodeAdd},
+    {"sub",  AVMOpcodeSub},
+    {"div",  AVMOpcodeDiv},
+    {"mul",  AVMOpcodeMul},
+    {"def",  AVMOpcodeDef},
+    {"eq",   AVMOpcodeEq},
+    {"neq",  AVMOpcodeNeq},
+    {"lt",   AVMOpcodeLt},
+    {"lte",  AVMOpcodeLte},
+    {"gt",   AVMOpcodeGt},
+    {"gte",  AVMOpcodeGte},
+    {"if",   AVMOpcodeIf},
+    {"ifelse",AVMOpcodeIfElse},
+
+    /* ... */
+    {NULL, 0}
+};
+
+int compile_op(Buffer *output, Buffer *token)
+{
+    char buf[1];
+
+    const char *op = buffer_get_data(token);
+    
+    size_t i;
+    for (i=0;OPCODE_TABLE[i].name != NULL;++i)
+    {
+        if (!strcasecmp(OPCODE_TABLE[i].name,op))
+        {
+            buf[0] = OPCODE_TABLE[i].op;
+            buffer_append(output,buf,1);
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "Invalid opcode: %s\n", op);
+    return 0;
+}
+
 int compile_nested(Buffer *output, FILE *input, int nestlvl)
 {
     TokenType type;
@@ -130,12 +194,17 @@ int compile_nested(Buffer *output, FILE *input, int nestlvl)
                 break;
 
             case TokenChar:
+                rv = compile_char(output, token);
+                break;
+
             case TokenRef:
             case TokenDeref:
             case TokenCodeBegin:
             case TokenCodeEnd:
             case TokenOp:
+                rv = compile_op(output, token);
                 break;
+
             case TokenError:
             case TokenEOF:
                 /* impossible, but avoid warning */

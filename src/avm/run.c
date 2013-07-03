@@ -62,7 +62,7 @@ static AVMError _read_uint16(AVM vm, uint32_t *value)
     
     uint8_t *p = (uint8_t*)&vm->runtime.code[vm->runtime.pos];
 
-    *value = (p[1]<<8) | p[0];
+    *value = (p[0]<<8) | p[1];
     
     vm->runtime.pos += 2;
     return AVM_NO_ERROR;

@@ -170,7 +170,7 @@ char parse_input(Buffer *token, TokenType *pType, FILE *input)
 
             if (rv==1)
             {
-                if (buffer_get_size(token)-=1)
+                if (buffer_get_size(token)==1)
                 {
                     *pType = TokenChar;
                 }

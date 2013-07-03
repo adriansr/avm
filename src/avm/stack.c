@@ -57,6 +57,24 @@ void avm_stack_free(AVMStack s)
     }
 }
 
+void avm_stack_clear(AVMStack s)
+{
+    if (s != NULL)
+    {
+        uint32_t i;
+        for (i=0;i<s->used;++i)
+        {
+            if (s->ptr[i])
+            {
+                free(s->ptr[i]);
+                s->ptr[i] = NULL;
+            }
+        }
+
+        s->used = 0;
+    }
+}
+
 static char _avm_stack_grow(AVMStack s)
 {
     if (s->reserved)
