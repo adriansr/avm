@@ -7,8 +7,13 @@
 #include "buffer.h"
 #include "parser.h"
 
-#include <avm/opcodes.h>
-   
+#include <avm/avm.h>
+
+#include <avm/generated/opcodes.h>
+#include <avm/generated/opcode-name-table.h>
+
+static AVM g_avm;
+
 int compile_integer(Buffer *output, long long rval)
 {
     unsigned char buf[5];
@@ -123,32 +128,6 @@ int compile_string(Buffer *output, Buffer *token)
     return 0;
 }
 
-static struct {
-    const char *name;
-    AVMOpcode   op;
-}
-OPCODE_TABLE[] = {
-    {"pop",  AVMOpcodePop},
-    {"swap", AVMOpcodeSwap},
-    {"dup",  AVMOpcodeDup},
-    {"add",  AVMOpcodeAdd},
-    {"sub",  AVMOpcodeSub},
-    {"div",  AVMOpcodeDiv},
-    {"mul",  AVMOpcodeMul},
-    {"def",  AVMOpcodeDef},
-    {"eq",   AVMOpcodeEq},
-    {"neq",  AVMOpcodeNeq},
-    {"lt",   AVMOpcodeLt},
-    {"lte",  AVMOpcodeLte},
-    {"gt",   AVMOpcodeGt},
-    {"gte",  AVMOpcodeGte},
-    {"if",   AVMOpcodeIf},
-    {"ifelse",AVMOpcodeIfElse},
-
-    /* ... */
-    {NULL, 0}
-};
-
 int compile_op(Buffer *output, Buffer *token)
 {
     char buf[1];
@@ -170,16 +149,77 @@ int compile_op(Buffer *output, Buffer *token)
     return 0;
 }
 
+int compile_code(Buffer *output, Buffer *code)
+{
+    char buf[5];
+
+    uint32_t len = buffer_get_size(code);
+
+    if (len<256)
+    {
+        buf[0] = AVMOpcodeCode8;
+        buf[1] = len & 0xff;
+        buffer_append(output, buf, 2);
+    }
+    else if (len<65536)
+    {
+        buf[0] = AVMOpcodeCode16;
+        buf[1] = 0xff & (len>>8);
+        buf[2] = 0xff & len;
+        buffer_append(output, buf, 3);
+
+    }
+    else if (len<0x1000000)
+    {
+        buf[0] = AVMOpcodeCode24;
+        buf[1] = 0xff & (len>>16);
+        buf[2] = 0xff & (len>>8);
+        buf[3] = 0xff & len;
+        buffer_append(output, buf, 4);
+    }
+    else
+    {
+        buf[0] = AVMOpcodeCode32;
+        buf[1] = 0xff & (len>>24);
+        buf[2] = 0xff & (len>>16);
+        buf[3] = 0xff & (len>>8);
+        buf[4] = 0xff & len;
+        buffer_append(output, buf, 5);
+    }
+
+    buffer_append_buffer(output,code);
+    return 0;
+}
+
+int compile_ref(Buffer *output, Buffer *token, TokenType type)
+{
+    char    buf[5];
+    AVMHash hash;
+
+    buf[0] = (type == TokenRef)? AVMOpcodeRef : AVMOpcodeRefVal;
+
+    hash = avm_hash(g_avm, buffer_get_data(token), buffer_get_size(token));
+
+    buf[1] = 0xff & (hash>>24);
+    buf[2] = 0xff & (hash>>16);
+    buf[3] = 0xff & (hash>>8);
+    buf[4] = 0xff & (hash);
+    
+    buffer_append(output,buf,5);
+    return 0;
+}
+
 int compile_nested(Buffer *output, FILE *input, int nestlvl)
 {
     TokenType type;
     Buffer   *token = buffer_init();
     
-    while (parse_input(token, &type, input) 
+    int rv = 0;
+
+    while (rv==0 && parse_input(token, &type, input) 
        && type != TokenError
        && type != TokenEOF)
     {
-        int rv;
         
         buffer_zero_terminate(token);
 
@@ -199,8 +239,30 @@ int compile_nested(Buffer *output, FILE *input, int nestlvl)
 
             case TokenRef:
             case TokenDeref:
+                rv = compile_ref(output, token, type);
+                break;
+
             case TokenCodeBegin:
+            {
+                Buffer *subroutine = buffer_init();
+                rv                 = compile_nested(subroutine, input, nestlvl+1);
+                if (!rv)
+                {
+                    rv = compile_code(output, subroutine);
+                }
+            }
+            break;
+
             case TokenCodeEnd:
+                if (nestlvl<1)
+                {
+                    fprintf(stderr,"Close brace (}) found with no matching open brace\n");
+                    rv = 1;
+                }
+                goto term;
+
+            break;
+
             case TokenOp:
                 rv = compile_op(output, token);
                 break;
@@ -211,8 +273,9 @@ int compile_nested(Buffer *output, FILE *input, int nestlvl)
                 break;
         }
     }
+term:
 
-    return type != TokenError ? 0 : 9;
+    return rv? rv : type != TokenError ? 0 : 9;
 }
 
 int compile(Args *args)
@@ -237,6 +300,12 @@ int compile(Args *args)
         return 4;
     }
     
+    g_avm = avm_init();
+    if (!g_avm)
+    {
+        return 12;
+    }
+
     Buffer *buf = buffer_init();
 
     ret = compile_nested(buf, fin, 0);

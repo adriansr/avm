@@ -1,8 +1,11 @@
 #include "avm/internals.h"
-#include "avm/opcodes.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "avm/generated/opcodes.h"
+#include "avm/generated/parsers-decl.h"
+#include "avm/generated/parser-table.h"
 
 #define MK_NUMBER_FN(N) \
 static AVMError _parse_ ## N(AVM vm) \
@@ -378,6 +381,29 @@ static AVMError _parse_Div(AVM vm)
     avm_object_free(b);
     _avm_stack_set(s,1,a);
 
+    return avm_stack_discard(s,1);
+}
+
+static AVMError _parse_Mod(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+
+    if (a->type != AVMTypeInteger || a->type != b->type)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value %= ((AVMInteger)b)->value;
+
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
     return avm_stack_discard(s,1);}
 
 static AVMError _parse_Mul(AVM vm)
@@ -473,6 +499,42 @@ static AVMError _parse_Def(AVM vm)
     }
 
     return avm_stack_discard(s, 2);
+}
+
+
+static AVMError _parse_Undef(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject key   = avm_stack_at(s,0);
+    
+    
+    if (key->type != AVMTypeRef)
+    {
+        // TODO
+        // assert( key->type != AVMTypeString);
+        return AVM_ERROR_REF_EXPECTED;
+    }
+
+    AVMDict dict = vm->runtime.vars;
+    if (dict != NULL)
+    {
+        AVMError err = avm_dict_remove(dict, ((AVMRef)key)->ref);
+    
+        if (err != AVM_NO_ERROR)
+        {
+            return err;
+        }
+
+        return avm_stack_discard(s, 2);
+    }
+
+    return AVM_NO_ERROR;
 }
 
 static AVMError _parse_Swap(AVM vm)
@@ -614,6 +676,66 @@ static AVMError _parse_If(AVM vm)
     return AVM_NO_ERROR;
 }
 
+static AVMError _parse_At(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject string   = avm_stack_at(s,0),
+              position = avm_stack_at(s,1);
+    
+    
+    if (string->type != AVMTypeString || position->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    int32_t pos = ((AVMInteger)position)->value;
+    int32_t len = ((AVMString)string)->length;
+
+    if (pos>=0)
+    {
+        if (pos >= len)
+            return AVM_ERROR_RANGE_CHECK;
+    }
+    else
+    {
+        if (pos < -len)
+            return AVM_ERROR_RANGE_CHECK;
+        
+        pos = len + pos;
+    }
+
+    unsigned char value = (unsigned char) ((AVMString)string)->data[pos];
+    
+    ((AVMInteger)position)->value = value;
+    
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Len(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject string   = avm_stack_at(s,0);
+    
+    if (string->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t len = ((AVMString)string)->length;
+
+    AVMInteger o = avm_create_integer(len);
+    if (o == NULL) return AVM_ERROR_NO_MEM;
+    return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+}
+
 
 static AVMError _parse_IfElse(AVM vm)
 {
@@ -663,7 +785,10 @@ static AVMError _parse_IfElse(AVM vm)
     return AVM_NO_ERROR;
 }
 
-
+static AVMError _parse_Null(AVM vm)
+{
+    return AVM_ERROR_NULL_OPCODE;
+}
 
 AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 {
@@ -679,73 +804,13 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 
     while(vm->runtime.pos < vm->runtime.size)
     {
-        AVMOpcode op = vm->runtime.code[vm->runtime.pos ++];
+        AVMOpcode op = vm->runtime.code[vm->runtime.pos++];
 
-        switch (op)
-        {
-            case AVMOpcodeNull:
-                return AVM_ERROR_NULL_OPCODE;
+        err = PARSER_TABLE[op] != NULL? PARSER_TABLE[op](vm) 
+                                      : AVM_ERROR_INVALID_OPCODE;
         
-#define OPCODE(NAME) \
-            case AVMOpcode ## NAME: \
-                if ( (err=_parse_##NAME(vm)) != AVM_NO_ERROR) \
-                    goto failure; \
-                break;
-            
-            OPCODE(Ref)
-            OPCODE(RefVal)
-            OPCODE(Int8)
-            OPCODE(Int16)
-            OPCODE(Int24)
-            OPCODE(Int32)
-            OPCODE(Str8)
-            OPCODE(Str16)
-            OPCODE(Code8)
-            OPCODE(Code16)
-            OPCODE(Code24)
-            OPCODE(Code32)
-
-            OPCODE(Pop)
-            OPCODE(Swap)
-            OPCODE(Dup)
-            OPCODE(Add)
-            OPCODE(Sub)
-            OPCODE(Div)
-            OPCODE(Mul)
-
-            OPCODE(Def)
-
-            OPCODE(Eq)
-            OPCODE(Neq)
-            OPCODE(Lt)
-            OPCODE(Lte)
-            OPCODE(Gt)
-            OPCODE(Gte)
-
-            OPCODE(If)
-            OPCODE(IfElse)
-
-            OPCODE(0)
-            OPCODE(1)
-            OPCODE(2)
-            OPCODE(3)
-            OPCODE(4)
-            OPCODE(5)
-            OPCODE(6)
-            OPCODE(7)
-            
-            OPCODE(N1)
-            OPCODE(N2)
-            OPCODE(N3)
-            OPCODE(N4)
-            OPCODE(N5)
-            OPCODE(N6)
-            OPCODE(N7)
-
-            default:
-                return AVM_ERROR_INVALID_OPCODE;
-
-        }
+        if (err != AVM_NO_ERROR)
+            goto failure;
 
         vm->icount ++;
     }

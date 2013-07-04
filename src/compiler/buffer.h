@@ -21,5 +21,5 @@ void    buffer_zero_terminate(Buffer *b);
 #define buffer_get_data(B) ((B)->data)
 #define buffer_get_size(B) ((B)->used)
 #define buffer_clear(B)    do { (B)->used = 0; } while(0)
-
+#define buffer_append_buffer(A,B) buffer_append(A,(B)->data,(B)->used)
 #endif // BUFFER_H_INCLUDED

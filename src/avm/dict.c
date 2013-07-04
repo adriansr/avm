@@ -91,6 +91,39 @@ AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value)
     }
 }
 
+AVMError avm_dict_remove(AVMDict dict, AVMHash key)
+{
+    uint32_t pos = key & dict->mask;
+    struct _AVMDictEntry **ptr = & dict->dict[pos];
+
+    if (*ptr)
+    {
+        struct _AVMDictEntry **prev = ptr;
+        struct _AVMDictEntry  *cur  = *ptr;
+
+        while (cur != NULL && cur->key < key)
+        {
+            prev = &cur->next;
+            cur  =  cur->next;
+        }
+
+        if (cur != NULL)
+        {
+            if (cur->key == key)
+            {
+                if (cur->value)
+                    avm_object_free(cur->value);
+                
+                *prev = cur->next;
+
+                free(cur);
+            }
+        }
+    }
+
+    return AVM_NO_ERROR;
+}
+
 AVMObject avm_dict_get(AVMDict dict, AVMHash key)
 {
     if (!dict) return NULL;

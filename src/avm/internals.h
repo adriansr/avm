@@ -38,7 +38,7 @@
 #   define AVM_DEFAULT_HASH_SEED 0x873d1ae5
 
     AVMHash _avm_default_hash(const char *, size_t, AVMHash);
-    AVMHash _avm_hash        (AVM, const char*, size_t);
+    /*AVMHash _avm_hash        (AVM, const char*, size_t);*/
     void    _avm_set_error   (AVM, uint16_t, size_t);
 
 /*

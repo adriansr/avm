@@ -24,6 +24,7 @@
 #define AVM_ERROR_CODE_TRUNCATED 0x0105
 #define AVM_ERROR_REF_TRUNCATED  0x0106
 #define AVM_ERROR_REF_NOT_BIND   0x0107
+#define AVM_ERROR_RANGE_CHECK    0x0108
 
 /* inconsistency errors 0x02xx */
 #define AVM_ERROR_INVALID_DISCARD 0x0200
@@ -77,6 +78,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     /* misc */
     uint16_t avm_version(AVM vm);
     uint32_t avm_stats_icount(AVM vm);
+    AVMHash avm_hash(AVM, const char*, size_t);
 
     /* errors */
     uint16_t avm_error(AVM vm);
@@ -122,7 +124,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMDict   avm_dict_init(uint8_t size_exp);
     AVMError  avm_dict_set (AVMDict dict, AVMHash key, AVMObject value);
     AVMObject avm_dict_get (AVMDict dict, AVMHash key);
-
+    AVMError  avm_dict_remove(AVMDict dict, AVMHash key);
     /*
      * EXECUTION
      */

@@ -5,12 +5,13 @@ OBJECTS=args.o \
         buffer.o
 
 TARGET=avmcc
-CFLAGS=-g -Wall -pedantic -I..
+CFLAGS=-g -Wall -pedantic -I.. 
+LFLAGS=-L../avm -lavm
 
 default: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(LFLAGS) $^ -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

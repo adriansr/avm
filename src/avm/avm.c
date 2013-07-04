@@ -64,10 +64,9 @@ void avm_set_hash_seed(AVM     vm,
     vm->hash_seed = seed;
 }
 
-AVMHash _avm_hash(AVM vm, const char *data, size_t len)
+AVMHash avm_hash(AVM vm, const char *data, size_t len)
 {
     return (* vm->hash_fn)(data,len,vm->hash_seed);
-
 }
 
 void   _avm_set_error(AVM vm, uint16_t code, size_t pos)
