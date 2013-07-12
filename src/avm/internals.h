@@ -49,6 +49,11 @@
     {
         uint8_t type;
     };
+    
+    struct _AVMMark
+    {
+        uint8_t type;
+    };
 
     struct _AVMInteger
     {

@@ -167,6 +167,10 @@ void avm_stack_print(AVMStack s)
             case AVMTypeObject:
                 printf("*** object ***");
                 break;
+            
+            case AVMTypeMark:
+                printf("<~MARK~>");
+                break;
 
             case AVMTypeInteger:
                 tmp = avm_integer_get((AVMInteger)o);

@@ -15,12 +15,28 @@ static AVMString _create_buffer_type(AVMType t, const char *data, uint32_t size)
         o->length = size;
         if (size)
         {
-            memcpy(o->data, data, size);
+            if (data != NULL)
+                memcpy(o->data, data, size);
+            else
+                memset(o->data, 0, size);
         }
     }
 
     return o;
 }
+
+AVMMark avm_create_mark()
+{
+    AVMMark o = ALLOC_OPAQUE_STRUCT(AVMMark);
+
+    if (o != NULL)
+    {
+        o->type  = AVMTypeMark;
+    }
+
+    return o;
+}
+
 
 AVMInteger  avm_create_integer(int32_t value)
 {
@@ -43,6 +59,11 @@ AVMString avm_create_cstring(const char *s)
 AVMString avm_create_string(const char *data, uint32_t size)
 {
     return _create_buffer_type(AVMTypeString, data, size);
+}
+
+AVMString avm_create_string_empty(uint32_t size)
+{
+    return _create_buffer_type(AVMTypeString, NULL, size);
 }
 
 AVMCode avm_create_code(const char *ptr, uint32_t size)

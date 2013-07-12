@@ -10,6 +10,7 @@
  */
 
 #define AVM_NO_ERROR             0
+#define AVM_NO_ERROR_EXIT        1
 
 /* system errors 0x00xx */
 #define AVM_ERROR_INVALID_ARG    0x0001
@@ -25,6 +26,13 @@
 #define AVM_ERROR_REF_TRUNCATED  0x0106
 #define AVM_ERROR_REF_NOT_BIND   0x0107
 #define AVM_ERROR_RANGE_CHECK    0x0108
+#define AVM_ERROR_UNIMPLEMENTED  0x0109
+#define AVM_ERROR_BAD_INCREMENT  0x010a
+#define AVM_ERROR_STACK_RANGE    0x010b
+#define AVM_ERROR_DELTA_RANGE    0x010c
+#define AVM_ERROR_CHAR_VALUE     0x010d
+#define AVM_ERROR_MARK_NOT_FOUND 0x010e
+#define AVM_ERROR_STRING_RANGE   0x010f
 
 /* inconsistency errors 0x02xx */
 #define AVM_ERROR_INVALID_DISCARD 0x0200
@@ -35,6 +43,8 @@
 #define AVM_ERROR_REF_EXPECTED    0x0302
 #define AVM_ERROR_DIFFERENT_TYPES 0x0303 // comparing different types
 #define AVM_ERROR_TYPE_NOT_EXEC   0x0304
+#define AVM_ERROR_NEGATIVE_TIMES  0x0305
+
 typedef struct _AVM*      AVM;
 typedef struct _AVMStack* AVMStack;
 typedef struct _AVMDict*  AVMDict;
@@ -47,7 +57,8 @@ typedef enum {
     AVMTypeInteger,
     AVMTypeString,
     AVMTypeCode,
-    AVMTypeRef
+    AVMTypeRef,
+    AVMTypeMark
 } AVMType;
 
 typedef struct _AVMObject*  AVMObject;
@@ -55,6 +66,7 @@ typedef struct _AVMString*  AVMString;
 typedef struct _AVMInteger* AVMInteger;
 typedef struct _AVMString*  AVMCode;
 typedef struct _AVMRef*     AVMRef;
+typedef struct _AVMMark*    AVMMark;
 
 typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
 
@@ -91,8 +103,10 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMInteger  avm_create_integer(int32_t value);
     AVMString   avm_create_cstring(const char *s);
     AVMString   avm_create_string (const char *data, uint32_t size);
+    AVMString   avm_create_string_empty(uint32_t size);
     AVMCode     avm_create_code   (const char *ptr,  uint32_t size);
     AVMRef      avm_create_ref    (uint32_t hash);
+    AVMMark     avm_create_mark   ();
 
     void        avm_object_free   (AVMObject o);
     AVMObject   avm_object_copy   (AVMObject o);

@@ -222,6 +222,165 @@ static AVMError _parse_Ref(AVM vm)
     return avm_stack_push(vm->runtime.stack, (AVMObject)o);
 }
 
+static AVMError _parse_Count(AVM vm)
+{
+    AVMStack s   = vm->runtime.stack;
+    AVMInteger i = avm_create_integer(s->used);
+
+    return i!=NULL? avm_stack_push(s,(AVMObject)i) : AVM_ERROR_NO_MEM;
+}
+
+static AVMError _parse_Index(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject opos = avm_stack_at(s,0);
+    
+    if (opos->type  != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    avm_stack_discard(s, 1);
+    
+    AVMObject obj = avm_stack_at(s,((AVMInteger)opos)->value);
+
+    avm_object_free(opos);
+
+    if (obj == NULL)
+        return AVM_ERROR_STACK_RANGE;
+
+    AVMObject oo = avm_object_copy(obj);
+    return oo? avm_stack_push(s,oo) : AVM_ERROR_NO_MEM;
+        
+}
+
+static AVMError _parse_Copy(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject on = avm_stack_at(s,0);
+    
+    if (on->type  != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    int32_t n = ((AVMInteger)on)->value;
+    
+    avm_stack_discard(s, 1);
+    avm_object_free(on);
+    
+    if (avm_stack_size(s) < n)
+        return AVM_ERROR_STACK_RANGE;
+
+    int32_t i;
+    AVMError err;
+
+    for (i=n-1,err=AVM_NO_ERROR;err==AVM_NO_ERROR && n>0;n--)
+    {
+        AVMObject o   = avm_stack_at(s, i),
+                  oo  = avm_object_copy(o);
+        
+        err = oo!=NULL? avm_stack_push(s, oo) : AVM_ERROR_NO_MEM;
+    }
+
+    return err;
+}
+
+static AVMError _parse_Roll(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject od = avm_stack_at(s,0),
+              on = avm_stack_at(s,1);
+    
+    if (od->type  != AVMTypeInteger
+     || on->type  != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    avm_stack_discard(s, 2);
+    
+    int32_t d = ((AVMInteger)od)->value,
+            n = ((AVMInteger)on)->value;
+    
+    avm_object_free(od);
+    avm_object_free(on);
+    
+    if (n > s->used)
+        return AVM_ERROR_STACK_RANGE;
+    
+    if (d >= n || d <= -n)
+        return AVM_ERROR_DELTA_RANGE;
+
+    AVMObject *list = malloc( n * sizeof(AVMObject));
+    if (!list)
+        return AVM_ERROR_NO_MEM;
+
+    int32_t i;
+    for (i=0;i<n;++i)
+    {
+        list[i] = avm_stack_at(s,i);
+    }
+
+    for (i=0;i<n;++i)
+    {
+        int32_t pos = (i+d) % n;
+        if (pos<0) pos += n;
+        _avm_stack_set(s,i,list[pos]);
+    }
+
+    free(list);
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Rev(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject on = avm_stack_at(s,0);
+    
+    if (on->type  != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    int32_t n = ((AVMInteger)on)->value;
+    
+    avm_stack_discard(s, 1);
+    avm_object_free(on);
+    
+    if (avm_stack_size(s) < n)
+        return AVM_ERROR_STACK_RANGE;
+
+    int32_t i, j;
+
+    for (i=0,j=n-1; i < j; ++i, --j)
+    {
+        AVMObject a = avm_stack_at(s, i),
+                  b = avm_stack_at(s, j);
+
+        _avm_stack_set(s, i, b);
+        _avm_stack_set(s, j, a);
+    }
+
+    return AVM_NO_ERROR;
+}
+
 static AVMError _run_subroutine(AVM vm, AVMCode code)
 {
     const char *saved_code = vm->runtime.code;
@@ -265,13 +424,157 @@ static AVMError _parse_RefVal(AVM vm)
     
     if (o->type != AVMTypeCode)
     {
-        return avm_stack_push(vm->runtime.stack, o);
+        AVMObject oo = avm_object_copy(o);
+        return avm_stack_push(vm->runtime.stack, oo);
     }
     else
     {
         return _run_subroutine(vm, (AVMCode)o);
     }
 }
+
+static AVMError _parse_Repeat(AVM vm)
+{
+   AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject action    = avm_stack_at(s,0),
+              count     = avm_stack_at(s,1);
+    
+    if (count->type  != AVMTypeInteger
+     || action->type != AVMTypeCode)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    int32_t i,
+            times = ((AVMInteger)count)->value;
+   
+    if (times < 0)
+        return AVM_ERROR_NEGATIVE_TIMES;
+    
+    avm_stack_discard(s, 2);
+
+    AVMError err;
+    for (i=0;i<times;++i)
+    {
+        err = _run_subroutine(vm, (AVMCode)action);
+        if (err != AVM_NO_ERROR)
+        {
+            break;
+        }
+    }
+    
+    avm_object_free(action);
+    avm_object_free(count);
+
+    return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
+}
+
+static AVMError _parse_Times(AVM vm)
+{
+   AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject action    = avm_stack_at(s,0),
+              count     = avm_stack_at(s,1);
+    
+    if (count->type  != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+ 
+    int32_t i,
+            times = ((AVMInteger)count)->value;
+   
+    if (times < 0)
+        return AVM_ERROR_NEGATIVE_TIMES;
+
+    avm_stack_discard(s, 2);
+
+    AVMError err;
+
+    for (i=0;i<times;++i)
+    {
+        AVMObject oo = avm_object_copy(action);
+        if (!oo)
+            return AVM_ERROR_NO_MEM;
+        
+        err = avm_stack_push(s,oo);
+        if (err != AVM_NO_ERROR)
+            break;
+    }
+
+    avm_object_free(action);
+    avm_object_free(count);
+    
+    return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
+}
+
+static AVMError _parse_For(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 4)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject action    = avm_stack_at(s,0),
+              limit     = avm_stack_at(s,1),
+              increment = avm_stack_at(s,2),
+              initial   = avm_stack_at(s,3);
+    
+    if (    limit->type != AVMTypeInteger
+     || increment->type != AVMTypeInteger
+     ||   initial->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    int32_t i   = ((AVMInteger)initial)->value,
+            lim = ((AVMInteger)limit)->value,
+            inc = ((AVMInteger)increment)->value;
+   
+    if (inc==0 // not permitted
+     || (lim>i && inc<0)
+     || (lim<i && inc>0))
+    {
+        return AVM_ERROR_BAD_INCREMENT;
+    }
+
+    avm_stack_discard(s, 4);
+
+    AVMError err;
+
+    for (;(inc>0 && i<=lim) || (inc<0 && i>=lim) ;i+=inc)
+    {
+        AVMInteger ii = avm_create_integer(i);
+        err = avm_stack_push(s,(AVMObject)ii);
+        if (err != AVM_NO_ERROR)
+            break;
+
+        err = _run_subroutine(vm, (AVMCode)action);
+
+        if (err != AVM_NO_ERROR)
+            break;
+    }
+
+    avm_object_free(action);
+    avm_object_free(limit);
+    avm_object_free(increment);
+    avm_object_free(initial);
+    
+    return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
+}
+
+static AVMError _parse_Break(AVM vm)
+{
+    return AVM_NO_ERROR_EXIT;
+}
+
 
 #define MK_STR_BITS_FN(BITS) \
 static AVMError _parse_Str##BITS(AVM vm) \
@@ -555,6 +858,55 @@ static AVMError _parse_Swap(AVM vm)
     return AVM_NO_ERROR; 
 }
 
+static AVMError _parse_IsMark(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject  a = avm_stack_at(s,0);
+    AVMInteger b = avm_create_integer(a->type == AVMTypeMark);
+    
+    if (b)
+    {
+        avm_object_free(a);
+        avm_stack_discard(s,1);
+    }
+
+    return avm_stack_push(s, (AVMObject)b);
+}
+
+static AVMError _parse_CTM(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    uint32_t n = avm_stack_size(s);
+    if (n < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    
+    uint32_t i;
+    for (i=0;i<n;++i)
+    {
+        AVMObject a = avm_stack_at(s,i);
+        if (a->type == AVMTypeMark)
+            break;
+    }
+    
+    if (i<n)
+    {
+        AVMInteger b = avm_create_integer(i);
+        return avm_stack_push(s, (AVMObject)b);
+    }
+
+    return AVM_ERROR_MARK_NOT_FOUND;
+}
+
 static AVMError _compare(AVM vm,int* result)
 {
     AVMStack s = vm->runtime.stack;
@@ -685,8 +1037,8 @@ static AVMError _parse_At(AVM vm)
         return AVM_ERROR_NOT_ENOUGH_ARGS;
     }
 
-    AVMObject string   = avm_stack_at(s,0),
-              position = avm_stack_at(s,1);
+    AVMObject string   = avm_stack_at(s,1),
+              position = avm_stack_at(s,0);
     
     
     if (string->type != AVMTypeString || position->type != AVMTypeInteger)
@@ -715,6 +1067,75 @@ static AVMError _parse_At(AVM vm)
     return AVM_NO_ERROR;
 }
 
+static AVMError _parse_Head(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject string   = avm_stack_at(s,0);
+    
+    if (string->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    AVMInteger o = avm_create_integer(-1);
+    if (o == NULL) return AVM_ERROR_NO_MEM;
+
+    if ( ((AVMString)string)->length > 0)
+    {
+        ((AVMString)string)->length --;
+
+        o->value = ((AVMString)string)->data[0];
+
+        memmove(((AVMString)string)->data,
+                ((AVMString)string)->data+1,
+                ((AVMString)string)->length);
+    }
+    else
+    {
+        avm_stack_discard(s,1);
+        avm_object_free(string);
+    }
+    
+    return avm_stack_push(s, (AVMObject)o);
+}
+
+
+static AVMError _parse_Tail(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject string   = avm_stack_at(s,0);
+    
+    if (string->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    AVMInteger o = avm_create_integer(-1);
+    if (o == NULL) return AVM_ERROR_NO_MEM;
+
+    if ( ((AVMString)string)->length > 0)
+    {
+        ((AVMString)string)->length --;
+
+        o->value = ((AVMString)string)->data[((AVMString)string)->length];
+    }
+    else
+    {
+        avm_stack_discard(s,1);
+        avm_object_free(string);
+    }
+    
+    return avm_stack_push(s, (AVMObject)o);
+}
+
 static AVMError _parse_Len(AVM vm)
 {
     AVMStack s = vm->runtime.stack;
@@ -734,6 +1155,190 @@ static AVMError _parse_Len(AVM vm)
     AVMInteger o = avm_create_integer(len);
     if (o == NULL) return AVM_ERROR_NO_MEM;
     return avm_stack_push(vm->runtime.stack, (AVMObject)o);
+}
+
+static AVMError _parse_Expl(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject string = avm_stack_at(s,0);
+    
+    if (string->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t len = ((AVMString)string)->length;
+    
+    AVMError err = AVM_NO_ERROR;
+    
+    avm_stack_discard(s, 1);
+
+    while (err==AVM_NO_ERROR && len>0)
+    {
+        --len;
+
+        AVMInteger i = avm_create_integer( ((AVMString)string)->data[len] );
+        err          = i ? avm_stack_push(vm->runtime.stack, (AVMObject)i)
+                         : AVM_ERROR_NO_MEM;
+    }
+
+    avm_object_free(string);
+
+    return err;
+}
+
+static AVMError _parse_Mark(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+    
+    AVMMark mark = avm_create_mark(0);
+    
+    return mark?avm_stack_push(s, (AVMObject)mark) : AVM_ERROR_NO_MEM;
+}
+
+static AVMError _parse_Split(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMString pos = (AVMInteger)avm_stack_at(s,1),
+              str = (AVMString)avm_stack_at(s,0);
+    
+    if (pos->type != AVMTypeInteger || str->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    int32_t p   = pos->value,
+            len = (int32_t)str->length;
+    
+    if (p>=len || p<=-len)
+        return AVM_ERROR_STRING_RANGE;
+    
+    if (p<0) p = n-p;
+
+    AVMString part = avm_create_string(a->data, ->length);
+    if (r==NULL)
+        return AVM_ERROR_NO_MEM;
+
+    if (a->length)
+    {
+        memcpy(&r->data[0], a->data, a->length);
+    }
+
+    if (b->length)
+    {
+        memcpy(&r->data[a->length], b->data, b->length);
+    }
+
+    avm_stack_discard(s,1);
+    avm_object_free((AVMObject)a);
+    avm_object_free((AVMObject)b);
+    
+    _avm_stack_set(s,0,(AVMObject)r);
+    return AVM_NO_ERROR;
+}
+
+
+static AVMError _parse_Join(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMString a = (AVMString)avm_stack_at(s,1),
+              b = (AVMString)avm_stack_at(s,0);
+    
+    if (a->type != AVMTypeString || b->type != AVMTypeString)
+        return AVM_ERROR_WRONG_TYPE;
+
+    AVMString r = avm_create_string_empty(a->length + b->length);
+    if (r==NULL)
+        return AVM_ERROR_NO_MEM;
+
+    if (a->length)
+    {
+        memcpy(&r->data[0], a->data, a->length);
+    }
+
+    if (b->length)
+    {
+        memcpy(&r->data[a->length], b->data, b->length);
+    }
+
+    avm_stack_discard(s,1);
+    avm_object_free((AVMObject)a);
+    avm_object_free((AVMObject)b);
+    
+    _avm_stack_set(s,0,(AVMObject)r);
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Impl(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMInteger num = (AVMInteger)avm_stack_at(s,0);
+    
+    if (num->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t i,n = num->value;
+    
+    AVMError err = AVM_NO_ERROR;
+    
+    avm_stack_discard(s, 1);
+    avm_object_free((AVMObject)num);
+
+    if (avm_stack_size(s) < n)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMString str = avm_create_string_empty(n);
+
+    for (i=0;i<n;++i)
+    {
+        AVMInteger ii = (AVMInteger)avm_stack_at(s,n-i-1);
+        if (ii && ii->type == AVMTypeInteger)
+        {
+            uint32_t v = ii->value;
+            avm_object_free((AVMObject)ii);
+
+            if (v < 256)
+            {
+                str->data[i] = v;
+            }
+            else
+            {
+                err = AVM_ERROR_CHAR_VALUE;
+                break;
+            }
+
+        }
+        else
+        {
+            err = AVM_ERROR_WRONG_TYPE;
+            break;
+        }
+    }
+    avm_stack_discard(s,n);
+    avm_stack_push(s, (AVMObject)str);
+    return err;
 }
 
 
@@ -804,7 +1409,7 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
 
     while(vm->runtime.pos < vm->runtime.size)
     {
-        AVMOpcode op = vm->runtime.code[vm->runtime.pos++];
+        AVMOpcode op = (unsigned char)vm->runtime.code[vm->runtime.pos++];
 
         err = PARSER_TABLE[op] != NULL? PARSER_TABLE[op](vm) 
                                       : AVM_ERROR_INVALID_OPCODE;

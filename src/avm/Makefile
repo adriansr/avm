@@ -13,12 +13,12 @@ GHEADERS=generated/parser-table.h \
 TARGET=libavm.a
 CFLAGS=-g -Wall -pedantic -I..
 
-default: generated $(TARGET) test
+default: generated $(TARGET) avmrun
 
 $(TARGET): $(OBJECTS)
 	ar -rs $@ $^
 
-test: test.o
+avmrun: test.o
 	$(CC) $(CFLAGS) $< $(TARGET) -o $@
 
 generated: opcodes.list
