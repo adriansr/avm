@@ -29,6 +29,7 @@
                         size;
             AVMStack    stack;
             AVMDict     vars;
+            AVMObject   acc;
         } runtime;
 
         /* stats */

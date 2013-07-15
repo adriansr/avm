@@ -33,6 +33,7 @@
 #define AVM_ERROR_CHAR_VALUE     0x010d
 #define AVM_ERROR_MARK_NOT_FOUND 0x010e
 #define AVM_ERROR_STRING_RANGE   0x010f
+#define AVM_ERROR_ACC_NOT_SET    0x0110
 
 /* inconsistency errors 0x02xx */
 #define AVM_ERROR_INVALID_DISCARD 0x0200

@@ -722,6 +722,48 @@ static AVMError _parse_Or(AVM vm)
     return avm_stack_discard(s,1);
 }
 
+static AVMError _parse_ASet(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0);
+    
+    if (vm->runtime.acc)
+    {
+        avm_object_free(vm->runtime.acc);
+    }
+
+    vm->runtime.acc = b;
+
+    return avm_stack_discard(s,1);
+}
+
+
+
+static AVMError _parse_AGet(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (vm->runtime.acc == NULL)
+    {
+        return AVM_ERROR_ACC_NOT_SET;
+    }
+
+    AVMObject a = avm_object_copy(vm->runtime.acc);
+    
+    if (!a)
+    {
+        return AVM_ERROR_NO_MEM;
+    }
+
+    return avm_stack_push(s, a);
+}
+
 
 static AVMError _parse_Add(AVM vm)
 {

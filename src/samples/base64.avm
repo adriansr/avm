@@ -1,11 +1,11 @@
 @base64
 {
     mark swap
-    len @n swap def
+    len aset
 
     explode
     
-    $n 3 div
+    aget 3 div
     {
         $_base64chunk 
         ctm 1 add 4 roll 
@@ -15,26 +15,26 @@
     ctm neqz
     {
        ctm
-          3 swap sub dup @_ swap def
+          3 swap sub dup aset
        0 times
-       3 $_ roll
+       3 aget roll
        $_base64chunk
 
-       4 4 $_ sub roll
-       $_ { pop } repeat
-       $_ '=' times
-       4 $_ roll
+       4 4 aget sub roll
+       aget { pop } repeat
+       aget '=' times
+       4 aget roll
        5 4 roll
     }
     if
     
     pop
-    
-   @_ 4 def
-   count 4 div 1 sub
-   {
-        @_ $_ 4 add def
-        $_ -4 roll
+
+    4 aset
+    count 4 div 1 sub
+    {
+        aget 4 add aset
+        aget -4 roll
     }
     repeat
 
