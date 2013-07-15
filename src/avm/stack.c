@@ -175,6 +175,8 @@ void avm_stack_print(AVMStack s)
             case AVMTypeInteger:
                 tmp = avm_integer_get((AVMInteger)o);
                 printf("int  %d [0x%x]", (int)tmp, tmp);
+                if (tmp<128 && tmp>0x20)
+                    printf(" '%c'", tmp);
                 break;
 
             case AVMTypeString:

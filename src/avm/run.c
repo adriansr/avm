@@ -618,6 +618,111 @@ MK_CODE_BITS_FN(16)
 MK_CODE_BITS_FN(24)
 MK_CODE_BITS_FN(32)
 
+static AVMError _parse_Shl(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+
+    if (a->type != AVMTypeInteger || a->type != b->type)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t va = (uint32_t)((AVMInteger)a)->value,
+             vb = (uint32_t)((AVMInteger)b)->value;
+
+    ((AVMInteger)a)->value = (uint32_t) va << vb;
+    
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
+}
+
+static AVMError _parse_Shr(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+
+    if (a->type != AVMTypeInteger || a->type != b->type)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t va = (uint32_t)((AVMInteger)a)->value,
+             vb = (uint32_t)((AVMInteger)b)->value;
+
+    ((AVMInteger)a)->value = (uint32_t) va >> vb;
+    
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
+}
+
+static AVMError _parse_And(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+
+    if (a->type != AVMTypeInteger || a->type != b->type)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t va = (uint32_t)((AVMInteger)a)->value,
+             vb = (uint32_t)((AVMInteger)b)->value;
+
+    ((AVMInteger)a)->value = (uint32_t) va & vb;
+    
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
+}
+
+static AVMError _parse_Or(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 2)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject b = avm_stack_at(s,0),
+              a = avm_stack_at(s,1);
+
+    if (a->type != AVMTypeInteger || a->type != b->type)
+        return AVM_ERROR_WRONG_TYPE;
+    
+    uint32_t va = (uint32_t)((AVMInteger)a)->value,
+             vb = (uint32_t)((AVMInteger)b)->value;
+
+    ((AVMInteger)a)->value = (uint32_t) va | vb;
+    
+    avm_object_free(b);
+    _avm_stack_set(s,1,a);
+
+    return avm_stack_discard(s,1);
+}
+
+
 static AVMError _parse_Add(AVM vm)
 {
     AVMStack s = vm->runtime.stack;
@@ -707,7 +812,65 @@ static AVMError _parse_Mod(AVM vm)
     avm_object_free(b);
     _avm_stack_set(s,1,a);
 
-    return avm_stack_discard(s,1);}
+    return avm_stack_discard(s,1);
+}
+
+static AVMError _parse_EqZ(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0);
+
+    if (a->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value =  ((AVMInteger)a)->value == 0;
+
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_NeqZ(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0);
+
+    if (a->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value =  ((AVMInteger)a)->value != 0;
+
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Not(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0);
+
+    if (a->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value = ! ((AVMInteger)a)->value;
+
+    return AVM_NO_ERROR;
+}
 
 static AVMError _parse_Mul(AVM vm)
 {
@@ -1202,6 +1365,7 @@ static AVMError _parse_Mark(AVM vm)
 
 static AVMError _parse_Split(AVM vm)
 {
+    /*
     AVMStack s = vm->runtime.stack;
 
     if (avm_stack_size(s) < 2)
@@ -1209,8 +1373,8 @@ static AVMError _parse_Split(AVM vm)
         return AVM_ERROR_NOT_ENOUGH_ARGS;
     }
 
-    AVMString pos = (AVMInteger)avm_stack_at(s,1),
-              str = (AVMString)avm_stack_at(s,0);
+    AVMInteger pos = (AVMInteger)avm_stack_at(s,1);
+    AVMString  str = (AVMString)avm_stack_at(s,0);
     
     if (pos->type != AVMTypeInteger || str->type != AVMTypeString)
         return AVM_ERROR_WRONG_TYPE;
@@ -1243,6 +1407,8 @@ static AVMError _parse_Split(AVM vm)
     
     _avm_stack_set(s,0,(AVMObject)r);
     return AVM_NO_ERROR;
+    */
+    return AVM_ERROR_UNIMPLEMENTED;
 }
 
 
@@ -1313,7 +1479,7 @@ static AVMError _parse_Impl(AVM vm)
 
     for (i=0;i<n;++i)
     {
-        AVMInteger ii = (AVMInteger)avm_stack_at(s,n-i-1);
+        AVMInteger ii = (AVMInteger)avm_stack_at(s,i);
         if (ii && ii->type == AVMTypeInteger)
         {
             uint32_t v = ii->value;

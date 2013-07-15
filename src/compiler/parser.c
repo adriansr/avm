@@ -6,7 +6,7 @@
 #include "parser.h"
 
 static const char *BLANK_CHARS = " \t\r\n";
-static const char *REF_CHARS   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.";
+static const char *REF_CHARS   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.0123456789";
 
 static char parse_str(Buffer *token, TokenType *pType, FILE *input, char terminator)
 {

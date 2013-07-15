@@ -1,10 +1,62 @@
-
 @base64
 {
+    mark swap
+    len @n swap def
+
+    explode
     
+    $n 3 div
+    {
+        $_base64chunk 
+        ctm 1 add 4 roll 
+    }
+    repeat
+
+    ctm neqz
+    {
+       ctm
+          3 swap sub dup @_ swap def
+       0 times
+       3 $_ roll
+       $_base64chunk
+
+       4 4 $_ sub roll
+       $_ { pop } repeat
+       $_ '=' times
+       4 $_ roll
+       5 4 roll
+    }
+    if
+    
+    pop
+    
+   @_ 4 def
+   count 4 div 1 sub
+   {
+        @_ $_ 4 add def
+        $_ -4 roll
+    }
+    repeat
+
+    count implode
 }
 def
 
+@_base64chunk
+{
+    16 shl #0x10000 mul
+    3 1 roll
+    8 shl #0x100 mul
+    3 1 roll
+    or or #add add
+    4 { dup 0x3f and swap 6 shr } repeat
+    pop
+    $_base64chars
+    4 { swap at 5 1 roll } repeat
+    pop
+}
+def
 
-"hola mundo!!" base64
+@_base64chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" def
 
+"OH MY GOD!!\nThis is working!!1\n\nTotally useless crap anyway :)" $base64
