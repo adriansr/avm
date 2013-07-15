@@ -44,11 +44,11 @@ def
 
 @_base64chunk
 {
-    16 shl #0x10000 mul
+    16 shl
     3 1 roll
-    8 shl #0x100 mul
+    8 shl
     3 1 roll
-    or or #add add
+    or or
     4 { dup 0x3f and swap 6 shr } repeat
     pop
     $_base64chars
