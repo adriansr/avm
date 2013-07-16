@@ -429,7 +429,13 @@ static AVMError _parse_RefVal(AVM vm)
     }
     else
     {
-        return _run_subroutine(vm, (AVMCode)o);
+        AVMObject saved_acc = vm->runtime.acc;
+        vm->runtime.acc = 0;
+        AVMError err = _run_subroutine(vm, (AVMCode)o);
+        if (vm->runtime.acc)
+            avm_object_free(vm->runtime.acc);
+        vm->runtime.acc = saved_acc;
+        return err;
     }
 }
 

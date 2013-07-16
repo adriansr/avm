@@ -8,7 +8,8 @@
     aget 3 div
     {
         $_base64chunk 
-        ctm 1 add 4 roll 
+        aget 1 add aset
+        aget 1 add 4 roll 
     }
     repeat
 
@@ -25,19 +26,14 @@
        aget '=' times
        4 aget roll
        5 4 roll
+       pop
+       count 4 roll
     }
-    if
-    
-    pop
-
-    4 aset
-    count 4 div 1 sub
     {
-        aget 4 add aset
-        aget -4 roll
+        pop
     }
-    repeat
-
+    ifelse
+    
     count implode
 }
 def
@@ -59,4 +55,4 @@ def
 
 @_base64chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" def
 
-"OH MY GOD!!\nThis is working!!1\n\nTotally useless crap anyway :)" $base64
+"This is a sample text BASE64-encoded :)" $base64
