@@ -8,11 +8,11 @@
     mark swap
     dup 3 gt
     {
-        @np 2 def
-        2 swap 3 swap
-        1 aset
+        @np 1 def
+        2 swap 3 swap 5 swap
+        5 aset
         @n swap def
-        1 1 $n
+        0 1 $n
         # for 2 .. (n)
         {
             # <M> Po .... Pn c
