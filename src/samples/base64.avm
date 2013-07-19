@@ -1,6 +1,7 @@
 @base64
 {
     mark swap
+    mark swap
     len aset
 
     explode
@@ -17,24 +18,25 @@
     {
        ctm
           3 swap sub dup aset
-       0 times
+       0 swap times
        3 aget roll
        $_base64chunk
 
        4 4 aget sub roll
        aget { pop } repeat
-       aget '=' times
+       '=' aget times
        4 aget roll
        5 4 roll
        pop
-       count 4 roll
+       ctm 4 roll
     }
     {
         pop
     }
     ifelse
     
-    count implode
+    ctm implode
+    swap pop
 }
 def
 
@@ -55,4 +57,5 @@ def
 
 @_base64chars "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" def
 
-"This is a sample text BASE64-encoded :)" $base64
+# "This is a sample text BASE64-encoded :)" $base64
+

@@ -126,6 +126,9 @@ size_t _avm_object_raw_size(AVMObject o)
 {
     switch((AVMType)o->type)
     {
+        case AVMTypeMark:
+            return sizeof(struct _AVMMark);
+
         case AVMTypeInteger:
             return sizeof(struct _AVMInteger);
 

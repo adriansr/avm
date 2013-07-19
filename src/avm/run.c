@@ -488,8 +488,8 @@ static AVMError _parse_Times(AVM vm)
         return AVM_ERROR_NOT_ENOUGH_ARGS;
     }
 
-    AVMObject action    = avm_stack_at(s,0),
-              count     = avm_stack_at(s,1);
+    AVMObject action    = avm_stack_at(s,1),
+              count     = avm_stack_at(s,0);
     
     if (count->type  != AVMTypeInteger)
         return AVM_ERROR_WRONG_TYPE;
@@ -794,6 +794,44 @@ static AVMError _parse_Add(AVM vm)
     return avm_stack_discard(s,1);
 }
 
+static AVMError _parse_Inc(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0);
+
+    if (a->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value ++;
+    
+    return AVM_NO_ERROR;
+}
+
+static AVMError _parse_Dec(AVM vm)
+{
+    AVMStack s = vm->runtime.stack;
+
+    if (avm_stack_size(s) < 1)
+    {
+        return AVM_ERROR_NOT_ENOUGH_ARGS;
+    }
+
+    AVMObject a = avm_stack_at(s,0);
+
+    if (a->type != AVMTypeInteger)
+        return AVM_ERROR_WRONG_TYPE;
+
+    ((AVMInteger)a)->value --;
+    
+    return AVM_NO_ERROR;
+}
+
 static AVMError _parse_Sub(AVM vm)
 {
     AVMStack s = vm->runtime.stack;
@@ -955,7 +993,7 @@ static AVMError _parse_Dup(AVM vm)
     AVMObject o  = avm_stack_at(s,0),
               oo = avm_object_copy(o);
     
-    return avm_stack_push(s, oo);
+    return oo? avm_stack_push(s, oo) : AVM_ERROR_NO_MEM;
 }
 
 static AVMError _parse_Pop(AVM vm)
@@ -1230,7 +1268,7 @@ static AVMError _parse_If(AVM vm)
     {
         AVMError err = _run_subroutine(vm, (AVMCode)action);
 
-        if (err != AVM_NO_ERROR)
+        if (err != AVM_NO_ERROR && err != AVM_NO_ERROR_EXIT)
             return err;
 
         avm_object_free(action);
@@ -1595,7 +1633,7 @@ static AVMError _parse_IfElse(AVM vm)
 
     AVMError err = _run_subroutine(vm, (AVMCode) (b?action:actionB)) ;
 
-    if (err != AVM_NO_ERROR)
+    if (err != AVM_NO_ERROR && err != AVM_NO_ERROR_EXIT)
         return err;
 
     avm_object_free(action);
@@ -1614,7 +1652,8 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
     AVMError err;
     
     if (!code || !size)
-        return AVM_ERROR_NO_CODE;
+        return AVM_NO_ERROR; // We want empty codeblocks {} to work
+        //return AVM_ERROR_NO_CODE;
     
     vm->runtime.code  = code;
     vm->runtime.pos   = 0;
