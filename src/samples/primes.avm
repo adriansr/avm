@@ -59,17 +59,15 @@
         for
     }
     {
-        2 eq
+        mark swap dup
+        2 neq
         {
-            mark 2
+            pop
         }
-        {
-            mark
-        }
-        ifelse
+        if
     }
     ifelse
 }
 def
 
-20000 $primes_slow
+2 $primes_slow
