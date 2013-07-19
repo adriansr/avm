@@ -537,7 +537,8 @@ static AVMError _parse_For(AVM vm)
     
     if (    limit->type != AVMTypeInteger
      || increment->type != AVMTypeInteger
-     ||   initial->type != AVMTypeInteger)
+     ||   initial->type != AVMTypeInteger 
+     ||    action->type != AVMTypeCode)
         return AVM_ERROR_WRONG_TYPE;
     
     int32_t i   = ((AVMInteger)initial)->value,
@@ -575,6 +576,12 @@ static AVMError _parse_For(AVM vm)
     
     return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
 }
+
+static AVMError _parse_Debug(AVM vm)
+{
+    return AVM_NO_ERROR;
+}
+
 
 static AVMError _parse_Break(AVM vm)
 {
@@ -1264,17 +1271,16 @@ static AVMError _parse_If(AVM vm)
 
     avm_stack_discard(vm->runtime.stack, 2);
 
+    AVMError err = AVM_NO_ERROR;
+
     if (b)
     {
-        AVMError err = _run_subroutine(vm, (AVMCode)action);
-
-        if (err != AVM_NO_ERROR && err != AVM_NO_ERROR_EXIT)
-            return err;
+        err = _run_subroutine(vm, (AVMCode)action);
 
         avm_object_free(action);
     }
 
-    return AVM_NO_ERROR;
+    return err;
 }
 
 static AVMError _parse_At(AVM vm)
@@ -1633,13 +1639,10 @@ static AVMError _parse_IfElse(AVM vm)
 
     AVMError err = _run_subroutine(vm, (AVMCode) (b?action:actionB)) ;
 
-    if (err != AVM_NO_ERROR && err != AVM_NO_ERROR_EXIT)
-        return err;
-
     avm_object_free(action);
     avm_object_free(actionB);
 
-    return AVM_NO_ERROR;
+    return err;
 }
 
 static AVMError _parse_Null(AVM vm)

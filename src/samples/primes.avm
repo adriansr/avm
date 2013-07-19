@@ -6,16 +6,34 @@
 @primes_slow
 {
     mark swap
-    dup 2 gt
+    dup 3 gt
     {
+        @np 2 def
+        2 swap 3 swap
         1 aset
-        2 swap 3 2 3 -1 roll 
+        @n swap def
+        1 1 $n
         # for 2 .. (n)
         {
-            # <M> Po .... Pn i
+            # <M> Po .... Pn c
+            aget swap 1 and eqz
+            {
+                2
+            }
+            {
+                4
+            }
+            ifelse add aset aget
+            dup $n gt
+            {
+                pop
+                break
+            }
+            if
+            
             @save 1 def
-
-            aget -1 1
+            
+            $np -1 1
             {
                 # <M> a b c Po .... Pn i j
                 index 
@@ -53,7 +71,7 @@
                 pop
             }
             {
-                aget inc aset
+                @np $np inc def
             }
             ifelse
         }
@@ -61,14 +79,23 @@
     }
     {
         dup
-        2 neq
+        2 gte
+        {
+            dup 3 eq
+            {
+                2 swap
+            }
+            {
+            }
+            ifelse
+        }
         {
             pop
         }
-        if
+        ifelse
     }
     ifelse
 }
 def
 
-20000 $primes_slow
+1000000 $primes_slow
