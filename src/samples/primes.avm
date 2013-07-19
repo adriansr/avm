@@ -1,62 +1,55 @@
-# <int:n> primes_slow <int:prime_(n-1)> ... <int:prime_0>
+# <int:n> primes_slow <int:prime_0> ... <int:primeM>
 #
 # primes_slow(n):
 # 
 # return all the primes upto n, in a extremely ineficient manner
 @primes_slow
 {
-    dup 2 gte
+    dup 2 gt
     {
-        0 aset
-        mark swap 2 1 3 -1 roll 
+        1 aset
+        mark swap 2 swap 3 1 3 -1 roll 
         # for 2 .. (n)
         {
             # <M> Po .... Pn i
-            aget 0 gt
-            {
-                @save 1 def
+            @save 1 def
 
-                aget -1 1
+            aget -1 1
+            {
+                # <M> a b c Po .... Pn i j
+                index 
+                # <M> .... Pn i Pj
+                3 times
+                mul
+                # <M> .... Pn i Pj Pj2
+                2 index 
+                # M ... Pn i Pj Pj2 i
+                lte
                 {
-                    # <M> a b c Po .... Pn i j
-                    index 
-                    # <M> .... Pn i Pj
-                    3 times
-                    mul
-                    # <M> .... Pn i Pj Pj2
-                    2 index 
-                    # M ... Pn i Pj Pj2 i
-                    lte
+                    # M ... Pn i Pj
+                    1 index 3 1 roll
+                    # M ...Pn i i Pj
+                    mod
+                    # M ... Pn i m
+                    EqZ
                     {
-                        # M ... Pn i Pj
-                        1 index 3 1 roll
-                        # M ...Pn i i Pj
-                        mod
-                        # M ... Pn i m
-                        EqZ
-                        {
-                            @save 0 def
-                            break
-                        }
-                        if
-                    }
-                    {
-                        # M ... Pn i Pj
-                        pop
+                        @save 0 def
                         break
                     }
-                    ifelse
+                    if
                 }
-                for
-
-                $save eqz
                 {
+                    # M ... Pn i Pj
                     pop
-                }
-                {
-                    aget inc aset
+                    break
                 }
                 ifelse
+            }
+            for
+
+            $save eqz
+            {
+                pop
             }
             {
                 aget inc aset
@@ -65,7 +58,17 @@
         }
         for
     }
-    if
+    {
+        2 eq
+        {
+            mark 2
+        }
+        {
+            mark
+        }
+        ifelse
+    }
+    ifelse
 }
 def
 
