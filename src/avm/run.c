@@ -1284,9 +1284,8 @@ static AVMError _parse_If(AVM vm)
     if (b)
     {
         err = _run_subroutine(vm, (AVMCode)action);
-
-        avm_object_free(action);
     }
+    avm_object_free(action);
 
     return err;
 }
