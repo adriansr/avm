@@ -69,6 +69,8 @@ class ParserDeclarationGenerator(Generator):
     
     def terminate(self):
         self.add(['',
+                  'static AVMError _parse_invalid_opcode(AVM vm);',
+                  '',
                   '#endif // PARSERS_H_INCLUDED'])
     
     def destination(self):
@@ -92,7 +94,7 @@ class ParserTableGenerator(Generator):
         if name is not None:
             self.add('    _parse_{0},'.format(name))
         else:
-            self.add('    NULL,')
+            self.add('    _parse_invalid_opcode,')
     
     def terminate(self):
         self.add(['};',

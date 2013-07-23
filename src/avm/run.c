@@ -7,6 +7,11 @@
 #include "avm/generated/parsers-decl.h"
 #include "avm/generated/parser-table.h"
 
+static AVMError _parse_invalid_opcode(AVM vm)
+{
+    return AVM_ERROR_INVALID_OPCODE;
+}
+
 #define MK_NUMBER_FN(N) \
 static AVMError _parse_ ## N(AVM vm) \
 { \
@@ -1667,8 +1672,7 @@ AVMError avm_run(AVM vm, const char *code, size_t size, AVMStack s)
     {
         AVMOpcode op = (unsigned char)vm->runtime.code[vm->runtime.pos++];
 
-        err = PARSER_TABLE[op] != NULL? PARSER_TABLE[op](vm) 
-                                      : AVM_ERROR_INVALID_OPCODE;
+        err = PARSER_TABLE[op](vm);
         
         if (err != AVM_NO_ERROR)
             goto failure;

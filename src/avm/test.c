@@ -87,6 +87,9 @@ int main(int argc, char *argv[])
         printf("\nRun failed with code %x at position %lu\n", e, avm_error_position(vm));
         //return 2;
     }
+    
+    avm_stack_free(s);
+    avm_free(vm);
 
     return e;
 }

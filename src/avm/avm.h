@@ -139,6 +139,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMDict   avm_dict_init(uint8_t size_exp);
     AVMError  avm_dict_set (AVMDict dict, AVMHash key, AVMObject value);
     AVMObject avm_dict_get (AVMDict dict, AVMHash key);
+    void      avm_dict_free(AVMDict dict);
     AVMError  avm_dict_remove(AVMDict dict, AVMHash key);
     /*
      * EXECUTION

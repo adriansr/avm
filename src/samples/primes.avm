@@ -98,4 +98,4 @@
 }
 def
 
-1000000 $primes_slow
+500000 $primes_slow

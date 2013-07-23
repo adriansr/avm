@@ -11,7 +11,7 @@ GHEADERS=generated/parser-table.h \
          generated/opcodes.h
 
 TARGET=libavm.a
-CFLAGS=-g -Wall -pedantic -I..
+CFLAGS=-g -Wall -I..
 
 default: generated $(TARGET) avmrun
 

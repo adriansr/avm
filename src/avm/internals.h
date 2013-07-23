@@ -109,8 +109,8 @@
     struct _AVMDict
     {
         uint32_t     size,
-                     mask,
-                     count;
+                     mask;
+                     //count;
         struct _AVMDictEntry* dict[];
     };
 

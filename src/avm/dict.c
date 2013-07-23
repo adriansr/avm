@@ -15,21 +15,51 @@ AVMDict avm_dict_init(uint8_t size_exp)
     else if (size > AVM_DICT_MAX_SIZE_EXP) size = AVM_DICT_MAX_SIZE_EXP;
     
     size = 1 << size;
+    
+    uint32_t extrasize = sizeof(struct _AVMDictEntry*) * size;
 
-    AVMDict o = ALLOC_OPAQUE_STRUCT_WITH_EXTRA(AVMDict,
-                                               sizeof(struct _AVMDictEntry*)*size);
+    AVMDict o = ALLOC_OPAQUE_STRUCT_WITH_EXTRA(AVMDict,extrasize);
 
     if (o != NULL)
     {
         o->size  = size;
         o->mask  = size - 1; 
-        o->count = 0;
+        //o->count = 0;
 
-        memset(&o->dict, 0, size);
+        memset(&o->dict, 0, extrasize);
     }
 
     return o;
 }
+
+void avm_dict_free(AVMDict d)
+{
+    if (d)
+    {
+        size_t pos;
+        for (pos=0;pos<d->size;++pos)
+        {
+            struct _AVMDictEntry *e = d->dict[pos],
+                                 *next;
+
+            while (e)
+            {
+                next = e->next;
+                if (e->value)
+                {
+                    avm_object_free(e->value);
+                }
+                free(e);
+                e = next;
+            }
+
+            d->dict[pos] = 0;
+        }
+        
+        free(d);
+    }
+}
+
 
 static AVMError _store_key(AVMHash key, AVMObject value,
                            struct _AVMDictEntry **pPrev,
@@ -54,7 +84,7 @@ AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value)
 {
     uint32_t pos = key & dict->mask;
     struct _AVMDictEntry **ptr = & dict->dict[pos];
-
+    
     if (!*ptr)
     {
         return _store_key(key, value, ptr, NULL);

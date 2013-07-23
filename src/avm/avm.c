@@ -25,6 +25,18 @@ void avm_free(AVM vm)
 {
     if (vm != NULL)
     {
+        if (vm->runtime.acc)
+        {
+            avm_object_free(vm->runtime.acc);
+            vm->runtime.acc = NULL;
+        }
+        
+        if (vm->runtime.vars)
+        {
+            avm_dict_free(vm->runtime.vars);
+            vm->runtime.vars = NULL;
+        }
+
         free(vm);
         vm = NULL;
     }
