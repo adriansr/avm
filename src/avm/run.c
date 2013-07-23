@@ -513,7 +513,10 @@ static AVMError _parse_Times(AVM vm)
     {
         AVMObject oo = avm_object_copy(action);
         if (!oo)
-            return AVM_ERROR_NO_MEM;
+        {
+            err = AVM_ERROR_NO_MEM;
+            break;
+        }
         
         err = avm_stack_push(s,oo);
         if (err != AVM_NO_ERROR)
@@ -1057,11 +1060,13 @@ static AVMError _parse_Def(AVM vm)
     
     AVMError err = avm_dict_set(dict, ((AVMRef)key)->ref, value);
     
+
     if (err != AVM_NO_ERROR)
     {
         return err;
     }
 
+    avm_object_free(key);
     return avm_stack_discard(s, 2);
 }
 
@@ -1085,20 +1090,18 @@ static AVMError _parse_Undef(AVM vm)
         return AVM_ERROR_REF_EXPECTED;
     }
 
-    AVMDict dict = vm->runtime.vars;
-    if (dict != NULL)
-    {
-        AVMError err = avm_dict_remove(dict, ((AVMRef)key)->ref);
-    
-        if (err != AVM_NO_ERROR)
-        {
-            return err;
-        }
+    AVMDict  dict = vm->runtime.vars;
+    AVMError err = avm_stack_discard(s, 1);
 
-        return avm_stack_discard(s, 2);
+    if (err != AVM_NO_ERROR)
+    {
+        err = (dict!=NULL)? avm_dict_remove(dict, ((AVMRef)key)->ref)
+                          : AVM_NO_ERROR;
     }
 
-    return AVM_NO_ERROR;
+    avm_object_free(key);
+
+    return err;
 }
 
 static AVMError _parse_Swap(AVM vm)
