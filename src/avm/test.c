@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
         clock_t start = clock();
         e = avm_run(vm, ptr, len, s);
         took = clock() - start;
+        
+        free(ptr);
 
         if (e != AVM_NO_ERROR)
             break;
