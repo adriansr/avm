@@ -22,6 +22,7 @@ static char* read_file(char *name, size_t *pSizeOut)
      || fseek(f, 0L, SEEK_SET))
     {
         fprintf(stderr, "Unable to get file '%s' size\n", name);
+        fclose(f);
         return NULL;
     }
 
@@ -40,6 +41,8 @@ static char* read_file(char *name, size_t *pSizeOut)
         }
 
     }
+    
+    fclose(f);
 
     return ptr;
 }
