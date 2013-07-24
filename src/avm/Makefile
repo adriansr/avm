@@ -3,6 +3,7 @@ OBJECTS=avm.o \
         dict.o \
         objects.o \
         stack.o \
+        pool.o \
         run.o
 
 GHEADERS=generated/parser-table.h \

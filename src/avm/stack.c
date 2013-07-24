@@ -47,7 +47,7 @@ void avm_stack_free(AVMStack s)
             for (i=0;i<s->used;++i)
             {
                 if (s->ptr[i]) 
-                    avm_object_free(s->ptr[i]);
+                    avm_object_free(NULL,s->ptr[i]);
             }
 
             free(s->ptr);

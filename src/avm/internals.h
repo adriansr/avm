@@ -9,6 +9,8 @@
  * VM
  */
 
+    typedef struct _AVMPool* AVMPool;
+
     struct _AVM
     {
         uint16_t version;
@@ -31,6 +33,8 @@
             AVMDict     vars;
             AVMObject   acc;
         } runtime;
+        
+        AVMPool integer_pool;
 
         /* stats */
         uint32_t icount; /* instruction count */
@@ -41,6 +45,7 @@
     AVMHash _avm_default_hash(const char *, size_t, AVMHash);
     /*AVMHash _avm_hash        (AVM, const char*, size_t);*/
     void    _avm_set_error   (AVM, uint16_t, size_t);
+    AVMInteger _avm_create_integer(int32_t);
 
 /*
  * OBJECTS
@@ -113,5 +118,20 @@
                      //count;
         struct _AVMDictEntry* dict[];
     };
+
+    /*
+     * Memory Pool
+     */
+
+    struct _AVMPool
+    {
+        uint32_t max, used;
+        struct _AVMObject *v[];
+    };
+    
+    AVMInteger avm_pool_get_integer(AVMPool c, uint32_t value);
+    void       avm_pool_release(AVMPool c, AVMObject o);
+    AVMPool    avm_pool_init(uint32_t size);
+    void       avm_pool_free(AVMPool c);
 
 #endif /* AVM_INTERNALS_INCLUDED */

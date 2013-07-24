@@ -39,7 +39,6 @@ static char* read_file(char *name, size_t *pSizeOut)
             free(ptr);
             ptr = NULL;
         }
-
     }
     
     fclose(f);
@@ -52,6 +51,8 @@ int main(int argc, char *argv[])
     AVM vm     = avm_init();
     AVMStack s = avm_stack_init();
     
+    avm_tune(vm,64);
+
     clock_t took;
     
     AVMError e;

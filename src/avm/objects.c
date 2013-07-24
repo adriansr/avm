@@ -38,7 +38,7 @@ AVMMark avm_create_mark()
 }
 
 
-AVMInteger  avm_create_integer(int32_t value)
+AVMInteger  _avm_create_integer(int32_t value)
 {
     AVMInteger o = ALLOC_OPAQUE_STRUCT(AVMInteger);
 
@@ -49,6 +49,11 @@ AVMInteger  avm_create_integer(int32_t value)
     }
 
     return o;
+}
+
+AVMInteger avm_create_integer(AVM vm, int32_t value)
+{
+    return avm_pool_get_integer(vm->integer_pool, value);
 }
 
 AVMString avm_create_cstring(const char *s)
@@ -84,16 +89,23 @@ AVMRef avm_create_ref(uint32_t hash)
     return o;
 }
 
-void avm_object_free(AVMObject o)
+void avm_object_free(AVM vm, AVMObject o)
 {
     if (o)
     {
-        switch(o->type)
+        AVMPool pool = NULL;
+
+        if (vm)
         {
-            /* add types that need extra deallocation here */
+            switch(o->type)
+            {
+                case AVMTypeInteger:
+                    pool = vm->integer_pool;
+                    break;
+            }
         }
 
-        free(o);
+        avm_pool_release(pool, o);
     }
 }
 

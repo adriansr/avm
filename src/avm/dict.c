@@ -47,7 +47,7 @@ void avm_dict_free(AVMDict d)
                 next = e->next;
                 if (e->value)
                 {
-                    avm_object_free(e->value);
+                    avm_object_free(NULL,e->value);
                 }
                 free(e);
                 e = next;
@@ -105,7 +105,7 @@ AVMError avm_dict_set (AVMDict dict, AVMHash key, AVMObject value)
             if (cur->key == key)
             {
                 if (cur->value)
-                    avm_object_free(cur->value);
+                    avm_object_free(NULL,cur->value);
                 
                 cur->value = value;
 
@@ -142,7 +142,7 @@ AVMError avm_dict_remove(AVMDict dict, AVMHash key)
             if (cur->key == key)
             {
                 if (cur->value)
-                    avm_object_free(cur->value);
+                    avm_object_free(NULL,cur->value);
                 
                 *prev = cur->next;
 

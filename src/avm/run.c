@@ -15,7 +15,7 @@ static AVMError _parse_invalid_opcode(AVM vm)
 #define MK_NUMBER_FN(N) \
 static AVMError _parse_ ## N(AVM vm) \
 { \
-    AVMInteger o = avm_create_integer(N); \
+    AVMInteger o = avm_create_integer(vm,N); \
     if (o == NULL) return AVM_ERROR_NO_MEM; \
     return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
 }
@@ -32,7 +32,7 @@ MK_NUMBER_FN(7)
 #define MK_NEG_NUMBER_FN(N) \
 static AVMError _parse_N ## N(AVM vm) \
 { \
-    AVMInteger o = avm_create_integer(-N); \
+    AVMInteger o = avm_create_integer(vm,-N); \
     if (o == NULL) return AVM_ERROR_NO_MEM; \
     return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
 }
@@ -188,7 +188,7 @@ static AVMError _parse_Int ## BITS(AVM vm) \
     AVMError err = _read_int##BITS(vm, &value); \
     if (err != AVM_NO_ERROR) \
         return err; \
-    AVMInteger o = avm_create_integer(value); \
+    AVMInteger o = avm_create_integer(vm,value); \
     if (o == NULL) \
         return AVM_ERROR_NO_MEM; \
     return avm_stack_push(vm->runtime.stack, (AVMObject)o); \
@@ -230,7 +230,7 @@ static AVMError _parse_Ref(AVM vm)
 static AVMError _parse_Count(AVM vm)
 {
     AVMStack s   = vm->runtime.stack;
-    AVMInteger i = avm_create_integer(s->used);
+    AVMInteger i = avm_create_integer(vm,s->used);
 
     return i!=NULL? avm_stack_push(s,(AVMObject)i) : AVM_ERROR_NO_MEM;
 }
@@ -253,7 +253,7 @@ static AVMError _parse_Index(AVM vm)
     
     AVMObject obj = avm_stack_at(s,((AVMInteger)opos)->value);
 
-    avm_object_free(opos);
+    avm_object_free(vm,opos);
 
     if (obj == NULL)
         return AVM_ERROR_STACK_RANGE;
@@ -280,7 +280,7 @@ static AVMError _parse_Copy(AVM vm)
     int32_t n = ((AVMInteger)on)->value;
     
     avm_stack_discard(s, 1);
-    avm_object_free(on);
+    avm_object_free(vm,on);
     
     if (avm_stack_size(s) < n)
         return AVM_ERROR_STACK_RANGE;
@@ -320,8 +320,8 @@ static AVMError _parse_Roll(AVM vm)
     int32_t d = ((AVMInteger)od)->value,
             n = ((AVMInteger)on)->value;
     
-    avm_object_free(od);
-    avm_object_free(on);
+    avm_object_free(vm,od);
+    avm_object_free(vm,on);
     
     if (n > s->used)
         return AVM_ERROR_STACK_RANGE;
@@ -367,7 +367,7 @@ static AVMError _parse_Rev(AVM vm)
     int32_t n = ((AVMInteger)on)->value;
     
     avm_stack_discard(s, 1);
-    avm_object_free(on);
+    avm_object_free(vm,on);
     
     if (avm_stack_size(s) < n)
         return AVM_ERROR_STACK_RANGE;
@@ -438,7 +438,7 @@ static AVMError _parse_RefVal(AVM vm)
         vm->runtime.acc = 0;
         AVMError err = _run_subroutine(vm, (AVMCode)o);
         if (vm->runtime.acc)
-            avm_object_free(vm->runtime.acc);
+            avm_object_free(vm,vm->runtime.acc);
         vm->runtime.acc = saved_acc;
         return err;
     }
@@ -478,8 +478,8 @@ static AVMError _parse_Repeat(AVM vm)
         }
     }
     
-    avm_object_free(action);
-    avm_object_free(count);
+    avm_object_free(vm,action);
+    avm_object_free(vm,count);
 
     return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
 }
@@ -523,8 +523,8 @@ static AVMError _parse_Times(AVM vm)
             break;
     }
 
-    avm_object_free(action);
-    avm_object_free(count);
+    avm_object_free(vm,action);
+    avm_object_free(vm,count);
     
     return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
 }
@@ -566,7 +566,7 @@ static AVMError _parse_For(AVM vm)
 
     for (;(inc>0 && i<=lim) || (inc<0 && i>=lim) ;i+=inc)
     {
-        AVMInteger ii = avm_create_integer(i);
+        AVMInteger ii = avm_create_integer(vm,i);
         err = avm_stack_push(s,(AVMObject)ii);
         if (err != AVM_NO_ERROR)
             break;
@@ -577,10 +577,10 @@ static AVMError _parse_For(AVM vm)
             break;
     }
 
-    avm_object_free(action);
-    avm_object_free(limit);
-    avm_object_free(increment);
-    avm_object_free(initial);
+    avm_object_free(vm,action);
+    avm_object_free(vm,limit);
+    avm_object_free(vm,increment);
+    avm_object_free(vm,initial);
     
     return err != AVM_NO_ERROR_EXIT? err : AVM_NO_ERROR;
 }
@@ -659,7 +659,7 @@ static AVMError _parse_Shl(AVM vm)
 
     ((AVMInteger)a)->value = (uint32_t) va << vb;
     
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -685,7 +685,7 @@ static AVMError _parse_Shr(AVM vm)
 
     ((AVMInteger)a)->value = (uint32_t) va >> vb;
     
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -711,7 +711,7 @@ static AVMError _parse_And(AVM vm)
 
     ((AVMInteger)a)->value = (uint32_t) va & vb;
     
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -737,7 +737,7 @@ static AVMError _parse_Or(AVM vm)
 
     ((AVMInteger)a)->value = (uint32_t) va | vb;
     
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -756,7 +756,7 @@ static AVMError _parse_ASet(AVM vm)
     
     if (vm->runtime.acc)
     {
-        avm_object_free(vm->runtime.acc);
+        avm_object_free(vm,vm->runtime.acc);
     }
 
     vm->runtime.acc = b;
@@ -803,7 +803,7 @@ static AVMError _parse_Add(AVM vm)
 
     ((AVMInteger)a)->value += ((AVMInteger)b)->value;
     
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -864,7 +864,7 @@ static AVMError _parse_Sub(AVM vm)
 
     ((AVMInteger)a)->value -= ((AVMInteger)b)->value;
 
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -887,7 +887,7 @@ static AVMError _parse_Div(AVM vm)
 
     ((AVMInteger)a)->value /= ((AVMInteger)b)->value;
 
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -910,7 +910,7 @@ static AVMError _parse_Mod(AVM vm)
 
     ((AVMInteger)a)->value %= ((AVMInteger)b)->value;
 
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -990,7 +990,7 @@ static AVMError _parse_Mul(AVM vm)
 
     ((AVMInteger)a)->value *= ((AVMInteger)b)->value;
 
-    avm_object_free(b);
+    avm_object_free(vm,b);
     _avm_stack_set(s,1,a);
 
     return avm_stack_discard(s,1);
@@ -1021,7 +1021,7 @@ static AVMError _parse_Pop(AVM vm)
     }
     
     AVMObject o = avm_stack_pop(s);
-    if (o) avm_object_free(o);
+    if (o) avm_object_free(vm,o);
 
     return AVM_NO_ERROR;
 }
@@ -1066,7 +1066,7 @@ static AVMError _parse_Def(AVM vm)
         return err;
     }
 
-    avm_object_free(key);
+    avm_object_free(vm,key);
     return avm_stack_discard(s, 2);
 }
 
@@ -1099,7 +1099,7 @@ static AVMError _parse_Undef(AVM vm)
                           : AVM_NO_ERROR;
     }
 
-    avm_object_free(key);
+    avm_object_free(vm,key);
 
     return err;
 }
@@ -1132,11 +1132,11 @@ static AVMError _parse_IsMark(AVM vm)
     }
 
     AVMObject  a = avm_stack_at(s,0);
-    AVMInteger b = avm_create_integer(a->type == AVMTypeMark);
+    AVMInteger b = avm_create_integer(vm,a->type == AVMTypeMark);
     
     if (b)
     {
-        avm_object_free(a);
+        avm_object_free(vm,a);
         avm_stack_discard(s,1);
     }
 
@@ -1164,7 +1164,7 @@ static AVMError _parse_CTM(AVM vm)
     
     if (i<n)
     {
-        AVMInteger b = avm_create_integer(i);
+        AVMInteger b = avm_create_integer(vm,i);
         return avm_stack_push(s, (AVMObject)b);
     }
 
@@ -1211,8 +1211,8 @@ static AVMError _compare(AVM vm,int* result)
 
     avm_stack_discard(s, 2);
 
-    avm_object_free(b);
-    avm_object_free(a);
+    avm_object_free(vm,b);
+    avm_object_free(vm,a);
 
     return AVM_NO_ERROR; 
 }
@@ -1228,7 +1228,7 @@ static AVMError _parse_ ## NAME (AVM vm) \
         return err; \
     } \
     \
-    AVMInteger i = avm_create_integer(c OP 0); \
+    AVMInteger i = avm_create_integer(vm,c OP 0); \
     if (!i) \
     { \
         return AVM_ERROR_NO_MEM; \
@@ -1274,7 +1274,7 @@ static AVMError _parse_If(AVM vm)
             return AVM_ERROR_WRONG_TYPE;
     }
     
-    avm_object_free(condition);
+    avm_object_free(vm,condition);
     condition = NULL;
 
     avm_stack_discard(vm->runtime.stack, 2);
@@ -1285,7 +1285,7 @@ static AVMError _parse_If(AVM vm)
     {
         err = _run_subroutine(vm, (AVMCode)action);
     }
-    avm_object_free(action);
+    avm_object_free(vm,action);
 
     return err;
 }
@@ -1343,7 +1343,7 @@ static AVMError _parse_Head(AVM vm)
     if (string->type != AVMTypeString)
         return AVM_ERROR_WRONG_TYPE;
     
-    AVMInteger o = avm_create_integer(-1);
+    AVMInteger o = avm_create_integer(vm,-1);
     if (o == NULL) return AVM_ERROR_NO_MEM;
 
     if ( ((AVMString)string)->length > 0)
@@ -1359,7 +1359,7 @@ static AVMError _parse_Head(AVM vm)
     else
     {
         avm_stack_discard(s,1);
-        avm_object_free(string);
+        avm_object_free(vm,string);
     }
     
     return avm_stack_push(s, (AVMObject)o);
@@ -1380,7 +1380,7 @@ static AVMError _parse_Tail(AVM vm)
     if (string->type != AVMTypeString)
         return AVM_ERROR_WRONG_TYPE;
     
-    AVMInteger o = avm_create_integer(-1);
+    AVMInteger o = avm_create_integer(vm,-1);
     if (o == NULL) return AVM_ERROR_NO_MEM;
 
     if ( ((AVMString)string)->length > 0)
@@ -1392,7 +1392,7 @@ static AVMError _parse_Tail(AVM vm)
     else
     {
         avm_stack_discard(s,1);
-        avm_object_free(string);
+        avm_object_free(vm,string);
     }
     
     return avm_stack_push(s, (AVMObject)o);
@@ -1414,7 +1414,7 @@ static AVMError _parse_Len(AVM vm)
     
     uint32_t len = ((AVMString)string)->length;
 
-    AVMInteger o = avm_create_integer(len);
+    AVMInteger o = avm_create_integer(vm,len);
     if (o == NULL) return AVM_ERROR_NO_MEM;
     return avm_stack_push(vm->runtime.stack, (AVMObject)o);
 }
@@ -1443,12 +1443,12 @@ static AVMError _parse_Expl(AVM vm)
     {
         --len;
 
-        AVMInteger i = avm_create_integer( ((AVMString)string)->data[len] );
+        AVMInteger i = avm_create_integer(vm,((AVMString)string)->data[len] );
         err          = i ? avm_stack_push(vm->runtime.stack, (AVMObject)i)
                          : AVM_ERROR_NO_MEM;
     }
 
-    avm_object_free(string);
+    avm_object_free(vm,string);
 
     return err;
 }
@@ -1501,8 +1501,8 @@ static AVMError _parse_Split(AVM vm)
     }
 
     avm_stack_discard(s,1);
-    avm_object_free((AVMObject)a);
-    avm_object_free((AVMObject)b);
+    avm_object_free(vm,(AVMObject)a);
+    avm_object_free(vm,(AVMObject)b);
     
     _avm_stack_set(s,0,(AVMObject)r);
     return AVM_NO_ERROR;
@@ -1541,8 +1541,8 @@ static AVMError _parse_Join(AVM vm)
     }
 
     avm_stack_discard(s,1);
-    avm_object_free((AVMObject)a);
-    avm_object_free((AVMObject)b);
+    avm_object_free(vm,(AVMObject)a);
+    avm_object_free(vm,(AVMObject)b);
     
     _avm_stack_set(s,0,(AVMObject)r);
     return AVM_NO_ERROR;
@@ -1567,7 +1567,7 @@ static AVMError _parse_Impl(AVM vm)
     AVMError err = AVM_NO_ERROR;
     
     avm_stack_discard(s, 1);
-    avm_object_free((AVMObject)num);
+    avm_object_free(vm,(AVMObject)num);
 
     if (avm_stack_size(s) < n)
     {
@@ -1582,7 +1582,7 @@ static AVMError _parse_Impl(AVM vm)
         if (ii && ii->type == AVMTypeInteger)
         {
             uint32_t v = ii->value;
-            avm_object_free((AVMObject)ii);
+            avm_object_free(vm,(AVMObject)ii);
 
             if (v < 256)
             {
@@ -1639,15 +1639,15 @@ static AVMError _parse_IfElse(AVM vm)
             return AVM_ERROR_WRONG_TYPE;
     }
     
-    avm_object_free(condition);
+    avm_object_free(vm,condition);
     condition = NULL;
 
     avm_stack_discard(vm->runtime.stack, 3);
 
     AVMError err = _run_subroutine(vm, (AVMCode) (b?action:actionB)) ;
 
-    avm_object_free(action);
-    avm_object_free(actionB);
+    avm_object_free(vm,action);
+    avm_object_free(vm,actionB);
 
     return err;
 }

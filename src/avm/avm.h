@@ -87,6 +87,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     /* tunning */
     void avm_set_hash_fn  (AVM vm, AVMHashFn h);
     void avm_set_hash_seed(AVM vm, AVMHash   seed);
+    AVMError avm_tune(AVM vm, uint32_t integer_pool_size);
 
     /* misc */
     uint16_t avm_version(AVM vm);
@@ -101,7 +102,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
      * OBJECTS
      */
 
-    AVMInteger  avm_create_integer(int32_t value);
+    AVMInteger  avm_create_integer(AVM vm, int32_t value);
     AVMString   avm_create_cstring(const char *s);
     AVMString   avm_create_string (const char *data, uint32_t size);
     AVMString   avm_create_string_empty(uint32_t size);
@@ -109,7 +110,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMRef      avm_create_ref    (uint32_t hash);
     AVMMark     avm_create_mark   ();
 
-    void        avm_object_free   (AVMObject o);
+    void        avm_object_free   (AVM vm, AVMObject o);
     AVMObject   avm_object_copy   (AVMObject o);
     AVMType     avm_object_type   (AVMObject o);
     int32_t     avm_integer_get   (AVMInteger o);

@@ -27,7 +27,7 @@ void avm_free(AVM vm)
     {
         if (vm->runtime.acc)
         {
-            avm_object_free(vm->runtime.acc);
+            avm_object_free(vm,vm->runtime.acc);
             vm->runtime.acc = NULL;
         }
         
@@ -35,6 +35,11 @@ void avm_free(AVM vm)
         {
             avm_dict_free(vm->runtime.vars);
             vm->runtime.vars = NULL;
+        }
+        
+        if (vm->integer_pool)
+        {
+            avm_pool_free(vm->integer_pool);
         }
 
         free(vm);
@@ -91,4 +96,53 @@ uint32_t avm_stats_icount(AVM vm)
 {
     return vm->icount;
 }
+
+AVMError avm_tune(AVM vm, uint32_t integer_pool_size)
+{
+    if (vm->integer_pool)
+    {
+        avm_pool_free(vm->integer_pool);
+    }
+    
+    if (integer_pool_size)
+    {
+        vm->integer_pool = avm_pool_init(integer_pool_size);
+        if (!vm->integer_pool)
+            return AVM_ERROR_NO_MEM;
+    }
+    else
+    {
+        vm->integer_pool = 0;
+    }
+
+    return AVM_NO_ERROR;
+}
+
+/*AVMInteger _avm_get_integer(AVM vm, uint32_t value)
+{
+    
+    return (vm->integer_pool)? avm_pool_get_integer(vm->integer_pool, value)
+                             : avm_create_integer(value);
+}
+
+void _avm_release_integer(AVM vm,AVMInteger ii)
+{
+    if (vm->integer_pool)
+        avm_pool_release(vm->integer_pool,(AVMObject)ii);
+    else
+        avm_object_free((AVMObject)ii);
+}
+
+void _avm_release_object(AVM vm, AVMObject o)
+{
+    switch (o->type)
+    {
+        case AVMTypeInteger:
+            _avm_release_integer(vm, (AVMInteger)o);
+            break;
+
+        default:
+            avm_object_free(o);
+    }
+}*/
 
