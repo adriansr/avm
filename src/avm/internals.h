@@ -80,10 +80,10 @@
         uint32_t ref;
     };
 
-    struct _AVMFunction
+    struct _AVMExternal
     {
         uint8_t type;
-        AVMFunctionType ptr;
+        AVMExternalType ptr;
     };
     
     size_t _avm_object_raw_size(AVMObject);

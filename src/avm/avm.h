@@ -60,7 +60,7 @@ typedef enum {
     AVMTypeCode,
     AVMTypeRef,
     AVMTypeMark,
-    AVMTypeFunction,
+    AVMTypeExternal,
 } AVMType;
 
 typedef struct _AVMObject*  AVMObject;
@@ -69,11 +69,11 @@ typedef struct _AVMInteger* AVMInteger;
 typedef struct _AVMString*  AVMCode;
 typedef struct _AVMRef*     AVMRef;
 typedef struct _AVMMark*    AVMMark;
-typedef struct _AVMFunction* AVMFunction;
+typedef struct _AVMExternal* AVMExternal;
 
 typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
 
-typedef AVMError (* AVMFunctionType) (AVM, AVMStack);
+typedef AVMError (* AVMExternalType) (AVM, AVMStack);
 
 /*
  * VM
@@ -97,6 +97,10 @@ typedef AVMError (* AVMFunctionType) (AVM, AVMStack);
     uint16_t avm_version(AVM vm);
     uint32_t avm_stats_icount(AVM vm);
     AVMHash avm_hash(AVM, const char*, size_t);
+    
+    /* vars */
+    AVMError avm_set_var(AVM,AVMHash,AVMObject);
+    AVMError avm_set_var_by_name(AVM,const char*, AVMObject);
 
     /* errors */
     uint16_t avm_error(AVM vm);
@@ -113,7 +117,7 @@ typedef AVMError (* AVMFunctionType) (AVM, AVMStack);
     AVMCode     avm_create_code   (const char *ptr,  uint32_t size);
     AVMRef      avm_create_ref    (uint32_t hash);
     AVMMark     avm_create_mark   ();
-    AVMFunction avm_create_function(AVMFunctionType f);
+    AVMExternal avm_create_external(AVMExternalType f);
 
     void        avm_object_free   (AVM vm, AVMObject o);
     AVMObject   avm_object_copy   (AVMObject o);

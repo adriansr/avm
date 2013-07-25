@@ -195,8 +195,8 @@ void avm_stack_print(AVMStack s)
                 printf("ref  @<%08x>",avm_ref_get((AVMRef)o));
                 break;
             
-            case AVMTypeFunction:
-                printf("ptr to %p", ((AVMFunction)o)->ptr);
+            case AVMTypeExternal:
+                printf("external %p", ((AVMExternal)o)->ptr);
                 break;
 
             default:

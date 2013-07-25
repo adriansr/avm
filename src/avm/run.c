@@ -440,9 +440,9 @@ static AVMError _parse_RefVal(AVM vm)
             return err;
         }
         
-        case AVMTypeFunction:
+        case AVMTypeExternal:
         {
-            return (*((AVMFunction)o)->ptr)(vm,vm->runtime.stack);
+            return (*((AVMExternal)o)->ptr)(vm,vm->runtime.stack);
         }
 
         default:
@@ -1055,20 +1055,7 @@ static AVMError _parse_Def(AVM vm)
         return AVM_ERROR_REF_EXPECTED;
     }
 
-    AVMDict dict = vm->runtime.vars;
-    if (dict == NULL)
-    {
-        dict = avm_dict_init(0);
-        if (!dict)
-        {
-            return AVM_ERROR_NO_MEM;
-        }
-
-        vm->runtime.vars = dict;
-    }
-    
-    AVMError err = avm_dict_set(dict, ((AVMRef)key)->ref, value);
-    
+    AVMError err = avm_set_var(vm, ((AVMRef)key)->ref, value);
 
     if (err != AVM_NO_ERROR)
     {

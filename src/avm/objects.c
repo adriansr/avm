@@ -89,13 +89,13 @@ AVMRef avm_create_ref(uint32_t hash)
     return o;
 }
 
-AVMFunction avm_create_function(AVMFunctionType f)
+AVMExternal avm_create_external(AVMExternalType f)
 {
-    AVMFunction o = ALLOC_OPAQUE_STRUCT(AVMFunction);
+    AVMExternal o = ALLOC_OPAQUE_STRUCT(AVMExternal);
 
     if (o != NULL)
     {
-        o->type = AVMTypeFunction;
+        o->type = AVMTypeExternal;
         o->ptr  = f;
     }
 
@@ -167,8 +167,8 @@ size_t _avm_object_raw_size(AVMObject o)
         case AVMTypeRef:
             return sizeof(struct _AVMRef);
         
-        case AVMTypeFunction:
-            return sizeof(struct _AVMFunction);
+        case AVMTypeExternal:
+            return sizeof(struct _AVMExternal);
 
         default:
             return 0;
