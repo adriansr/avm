@@ -46,6 +46,13 @@ static char* read_file(char *name, size_t *pSizeOut)
     return ptr;
 }
 
+/*AVMError test_callback(AVM vm, AVMStack stack)
+{
+    AVMString hw = avm_create_cstring("Hello world!");
+    avm_stack_push(stack, (AVMObject)hw);
+    return AVM_NO_ERROR;
+}*/
+
 int main(int argc, char *argv[])
 {
     AVM vm     = avm_init();
@@ -57,6 +64,9 @@ int main(int argc, char *argv[])
     
     AVMError e;
     
+    /*AVMFunction f = avm_create_function(test_callback);
+    avm_stack_push(s, (AVMObject)f);*/
+
     int i;
     for (i=1;i<argc;++i)
     {

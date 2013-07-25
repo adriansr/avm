@@ -427,20 +427,29 @@ static AVMError _parse_RefVal(AVM vm)
         return AVM_ERROR_REF_NOT_BIND;
     }
     
-    if (o->type != AVMTypeCode)
+    switch (o->type)
     {
-        AVMObject oo = avm_object_copy(o);
-        return avm_stack_push(vm->runtime.stack, oo);
-    }
-    else
-    {
-        AVMObject saved_acc = vm->runtime.acc;
-        vm->runtime.acc = 0;
-        AVMError err = _run_subroutine(vm, (AVMCode)o);
-        if (vm->runtime.acc)
-            avm_object_free(vm,vm->runtime.acc);
-        vm->runtime.acc = saved_acc;
-        return err;
+        case AVMTypeCode:
+        {
+            AVMObject saved_acc = vm->runtime.acc;
+            vm->runtime.acc = 0;
+            AVMError err = _run_subroutine(vm, (AVMCode)o);
+            if (vm->runtime.acc)
+                avm_object_free(vm,vm->runtime.acc);
+            vm->runtime.acc = saved_acc;
+            return err;
+        }
+        
+        case AVMTypeFunction:
+        {
+            return (*((AVMFunction)o)->ptr)(vm,vm->runtime.stack);
+        }
+
+        default:
+        {
+            AVMObject oo = avm_object_copy(o);
+            return avm_stack_push(vm->runtime.stack, oo);
+        }
     }
 }
 

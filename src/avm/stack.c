@@ -194,6 +194,10 @@ void avm_stack_print(AVMStack s)
             case AVMTypeRef:
                 printf("ref  @<%08x>",avm_ref_get((AVMRef)o));
                 break;
+            
+            case AVMTypeFunction:
+                printf("ptr to %p", ((AVMFunction)o)->ptr);
+                break;
 
             default:
                 printf("*** unknown %u ***", o->type);

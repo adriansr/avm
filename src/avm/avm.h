@@ -59,7 +59,8 @@ typedef enum {
     AVMTypeString,
     AVMTypeCode,
     AVMTypeRef,
-    AVMTypeMark
+    AVMTypeMark,
+    AVMTypeFunction,
 } AVMType;
 
 typedef struct _AVMObject*  AVMObject;
@@ -68,8 +69,11 @@ typedef struct _AVMInteger* AVMInteger;
 typedef struct _AVMString*  AVMCode;
 typedef struct _AVMRef*     AVMRef;
 typedef struct _AVMMark*    AVMMark;
+typedef struct _AVMFunction* AVMFunction;
 
 typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
+
+typedef AVMError (* AVMFunctionType) (AVM, AVMStack);
 
 /*
  * VM
@@ -109,6 +113,7 @@ typedef AVMHash (* AVMHashFn) (const char *, size_t, AVMHash);
     AVMCode     avm_create_code   (const char *ptr,  uint32_t size);
     AVMRef      avm_create_ref    (uint32_t hash);
     AVMMark     avm_create_mark   ();
+    AVMFunction avm_create_function(AVMFunctionType f);
 
     void        avm_object_free   (AVM vm, AVMObject o);
     AVMObject   avm_object_copy   (AVMObject o);

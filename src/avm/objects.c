@@ -89,6 +89,20 @@ AVMRef avm_create_ref(uint32_t hash)
     return o;
 }
 
+AVMFunction avm_create_function(AVMFunctionType f)
+{
+    AVMFunction o = ALLOC_OPAQUE_STRUCT(AVMFunction);
+
+    if (o != NULL)
+    {
+        o->type = AVMTypeFunction;
+        o->ptr  = f;
+    }
+
+    return o;
+}
+
+
 void avm_object_free(AVM vm, AVMObject o)
 {
     if (o)
@@ -152,6 +166,9 @@ size_t _avm_object_raw_size(AVMObject o)
 
         case AVMTypeRef:
             return sizeof(struct _AVMRef);
+        
+        case AVMTypeFunction:
+            return sizeof(struct _AVMFunction);
 
         default:
             return 0;

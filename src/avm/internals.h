@@ -79,6 +79,12 @@
         uint8_t  type;
         uint32_t ref;
     };
+
+    struct _AVMFunction
+    {
+        uint8_t type;
+        AVMFunctionType ptr;
+    };
     
     size_t _avm_object_raw_size(AVMObject);
 
