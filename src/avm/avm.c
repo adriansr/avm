@@ -118,31 +118,26 @@ AVMError avm_tune(AVM vm, uint32_t integer_pool_size)
     return AVM_NO_ERROR;
 }
 
-/*AVMInteger _avm_get_integer(AVM vm, uint32_t value)
+AVMError avm_set_var(AVM vm, AVMHash key, AVMObject value)
 {
-    
-    return (vm->integer_pool)? avm_pool_get_integer(vm->integer_pool, value)
-                             : avm_create_integer(value);
-}
-
-void _avm_release_integer(AVM vm,AVMInteger ii)
-{
-    if (vm->integer_pool)
-        avm_pool_release(vm->integer_pool,(AVMObject)ii);
-    else
-        avm_object_free((AVMObject)ii);
-}
-
-void _avm_release_object(AVM vm, AVMObject o)
-{
-    switch (o->type)
+    AVMDict dict = vm->runtime.vars;
+    if (dict == NULL)
     {
-        case AVMTypeInteger:
-            _avm_release_integer(vm, (AVMInteger)o);
-            break;
+        dict = avm_dict_init(0);
+        if (!dict)
+        {
+            return AVM_ERROR_NO_MEM;
+        }
 
-        default:
-            avm_object_free(o);
+        vm->runtime.vars = dict;
     }
-}*/
+    
+    return avm_dict_set(dict, key, value);
+}
+
+AVMError avm_set_var_by_name(AVM vm, const char *name, AVMObject value)
+{
+    AVMHash key = avm_hash(vm,name,strlen(name));
+    return avm_set_var(vm,key,value);
+}
 
